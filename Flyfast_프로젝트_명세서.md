@@ -9,9 +9,11 @@
 | 프로젝트명 | Flyfast — 항공권 검색 및 예약 플랫폼 |
 | 팀원 | 안원주 · 김강현 · 조성민 |
 | 개발 기간 | 2026.08.14 ~ 진행 중 |
-| 문서 버전 | v1.1 (2026.08.18) |
-| AWS 배포 | http://flyfast-web-alb-1629813771.ap-northeast-2.elb.amazonaws.com |
+| 문서 버전 | v1.3 (2026.08.18) |
+| AWS 배포 | http://flyfast-web-alb-1629813771.ap-northeast-2.elb.amazonaws.com (별도 계정 `738815760058` 기준, 6.3절 참고) |
 | 개발 환경 | React + Vite · FastAPI · MySQL 8 · Redis |
+
+> **문서 역할 안내**: 이 문서는 팀 공식 프로젝트 명세서다. 우리 계정(`379937169195`)에서 실제로 진행 중인 인프라의 작업 로그/체크리스트는 `PROJECT_PLAN.md`를 참고한다 — 두 문서가 서로 다른 AWS 계정을 설명할 수 있으니 계정 번호를 항상 확인할 것.
 
 ---
 
