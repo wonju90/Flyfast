@@ -1,0 +1,433 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>Flyfast 프로젝트 명세서</title>
+<style>
+  @page { size: A4; margin: 0; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Apple SD Gothic Neo", "Malgun Gothic", "Helvetica Neue", Arial, sans-serif;
+    color: #1a1a1a;
+    font-size: 10.5pt;
+    line-height: 1.55;
+    margin: 0;
+    padding: 18mm 16mm;
+  }
+  h1 { font-size: 20pt; text-align: center; margin: 0 0 4px; }
+  h2.subtitle { font-size: 13pt; text-align: center; color: #444; margin: 0 0 22px; font-weight: 600; }
+  h2 { font-size: 15pt; border-bottom: 2px solid #232F3E; padding-bottom: 4px; margin: 26px 0 12px; page-break-after: avoid; }
+  h3 { font-size: 12pt; color: #0973B7; margin: 18px 0 8px; page-break-after: avoid; }
+  p { margin: 6px 0; }
+  hr { border: none; border-top: 1px solid #ccc; margin: 20px 0; }
+  table { width: 100%; border-collapse: collapse; margin: 8px 0 14px; font-size: 9.5pt; page-break-inside: avoid; }
+  th, td { border: 1px solid #ccc; padding: 5px 8px; text-align: left; vertical-align: top; }
+  th { background: #232F3E; color: white; font-weight: 600; }
+  tr:nth-child(even) td { background: #f7f7fa; }
+  code { background: #eef0f4; border-radius: 3px; padding: 1px 5px; font-family: "SF Mono", Menlo, monospace; font-size: 9pt; }
+  pre { background: #232F3E; color: #e8eaf0; padding: 10px 14px; border-radius: 6px; font-size: 9pt; overflow-x: auto; font-family: "SF Mono", Menlo, monospace; page-break-inside: avoid; }
+  pre code { background: none; color: inherit; padding: 0; }
+  blockquote { margin: 8px 0; padding: 6px 12px; border-left: 3px solid #8C4FFF; background: #FAF8FF; color: #444; font-size: 9.5pt; }
+  .doc-info-table td:first-child { width: 110px; font-weight: 600; background: #f2f2f6; }
+  .diagram { text-align: center; margin: 14px 0; page-break-inside: avoid; }
+  .diagram img { width: 100%; max-width: 420px; height: auto; }
+  .diagram svg { width: 100%; max-width: 560px; height: auto; }
+  .diagram-caption { font-size: 9pt; color: #666; margin-top: 6px; }
+  .footer-note { text-align: center; font-weight: 700; letter-spacing: 2px; margin-top: 30px; color: #444; }
+  .pagefoot { position: fixed; bottom: 8mm; right: 16mm; font-size: 8pt; color: #999; }
+  section { page-break-inside: avoid; }
+</style>
+</head>
+<body>
+
+<h1>프로젝트 명세서</h1>
+<h2 class="subtitle">Flyfast — 항공권 검색·예약 서비스</h2>
+
+<h3>문서 정보</h3>
+<table class="doc-info-table">
+<tr><td>프로젝트명</td><td>Flyfast — 항공권 검색 및 예약 플랫폼</td></tr>
+<tr><td>팀원</td><td>안원주 · 김강현 · 조성민</td></tr>
+<tr><td>개발 기간</td><td>2026.08.14 ~ 진행 중</td></tr>
+<tr><td>문서 버전</td><td>v1.2 (2026.08.18)</td></tr>
+<tr><td>AWS 배포</td><td>http://flyfast-web-alb-1629813771.ap-northeast-2.elb.amazonaws.com</td></tr>
+<tr><td>개발 환경</td><td>React + Vite · FastAPI · MySQL 8 · Redis</td></tr>
+</table>
+
+<hr>
+
+<h2>1. 프로젝트 개요</h2>
+
+<h3>1.1 배경 및 목적</h3>
+<p>항공권 검색 과정은 출발지·도착지·날짜·여행 인원 등 여러 조건을 한 번에 비교해야 하며, 서비스 운영 시에는 검색 트래픽과 예약 데이터를 안정적으로 분리해야 한다. Flyfast는 직관적인 항공편 탐색 UI와 AWS 멀티 AZ 인프라를 함께 구축하여, 확장 가능한 항공권 검색·예약 서비스의 기반을 구현하는 것을 목표로 한다.</p>
+
+<h3>1.2 프로젝트 목표</h3>
+<table>
+<tr><th>구분</th><th>목표</th></tr>
+<tr><td>기능 목표</td><td>출·도착지, 날짜, 인원 입력 → 항공편 검색 → 직항 필터 → 항공편 선택</td></tr>
+<tr><td>기술 목표</td><td>React + Vite, FastAPI, MySQL 8, Redis 고정 · ORM 미사용</td></tr>
+<tr><td>인프라 목표</td><td>2개 AZ, 8개 서브넷, 계층별 보안그룹, NAT 이중화, ALB 기반 웹 이중화</td></tr>
+<tr><td>협업 목표</td><td>Terraform 코드 기반 인프라 재현, Git 이력과 운영 인계 문서 유지</td></tr>
+</table>
+
+<h3>1.3 개발 범위</h3>
+<table>
+<tr><th>포함(In Scope)</th><th>제외/후속(Out of Scope)</th></tr>
+<tr><td>항공권 검색 폼, 노선 교환, 날짜·인원 선택</td><td>실시간 항공사 운임 API 연동</td></tr>
+<tr><td>직항 필터, 샘플 항공편 목록, 선택 상태</td><td>실제 결제·발권·환불 처리 (결제는 Mock 처리로 대체)</td></tr>
+<tr><td>AWS VPC, EC2 10대, NAT 2대, ALB</td><td>회원 인증 및 운영자 백오피스</td></tr>
+<tr><td>반응형 웹·OG 이미지·배포 검증</td><td>RDS/ElastiCache 관리형 서비스 전환</td></tr>
+</table>
+
+<h3>1.4 팀 구성 및 역할</h3>
+<table>
+<tr><th>이름</th><th>역할</th><th>주요 담당</th></tr>
+<tr><td>안원주</td><td>팀장 / 인프라</td><td>요구사항 정리, Terraform, AWS 네트워크·배포, 통합 관리</td></tr>
+<tr><td>김강현</td><td>백엔드 / 데이터</td><td>예약 도메인·API·DB 설계, 데이터 흐름 및 검증</td></tr>
+<tr><td>조성민</td><td>프론트엔드</td><td>검색·항공편 UI, 반응형 스타일, 사용자 상호작용</td></tr>
+</table>
+
+<hr>
+
+<h2>2. 시스템 아키텍처</h2>
+
+<h3>2.1 네트워크 구성 (Flyfast-vpc / 172.16.0.0/16)</h3>
+
+<div class="diagram">
+<img src="airplane-project-v1.png" alt="Flyfast 인프라 구성도">
+<p class="diagram-caption">[그림 1] Flyfast 인프라 구성도 — 2개 가용영역 × 4계층 서브넷, Web·Backend 계층은 Auto Scaling Group으로 이중화</p>
+</div>
+
+<table>
+<tr><th>계층</th><th>서브넷 (2a / 2c)</th><th>유형</th><th>배치 인스턴스</th></tr>
+<tr><td>공개</td><td>Flyfast-public01 / 02</td><td>Public</td><td>bastion, NAT Gateway, ALB</td></tr>
+<tr><td>프론트</td><td>Flyfast-front01 / 02</td><td>Private</td><td>web-a, web-c</td></tr>
+<tr><td>애플리케이션</td><td>Flyfast-backend01 / 02</td><td>Private</td><td>api-a/c, redis-a/c</td></tr>
+<tr><td>데이터</td><td>Flyfast-db01 / 02</td><td>Private</td><td>mysql-a, mysql-c</td></tr>
+</table>
+
+<p><b>설계 의도</b>: ap-northeast-2a와 2c에 동일 계층을 대칭 배치하고, AZ별 NAT Gateway와 라우팅 테이블을 분리했다. 한 AZ의 장애가 다른 AZ의 아웃바운드 경로와 웹 서비스에 영향을 주지 않도록 구성했다.</p>
+
+<h3>2.2 트래픽 흐름</h3>
+<div class="diagram">
+<svg viewBox="0 0 700 800" xmlns="http://www.w3.org/2000/svg" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#333"/>
+    </marker>
+    <marker id="arrowGray" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#888"/>
+    </marker>
+  </defs>
+
+  <rect x="245" y="14" width="210" height="46" rx="23" fill="#F4F6F8" stroke="#333" stroke-width="1.3"/>
+  <text x="350" y="42" font-size="14" font-weight="bold" text-anchor="middle" fill="#222">사용자 브라우저</text>
+
+  <line x1="350" y1="60" x2="350" y2="98" stroke="#333" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <text x="360" y="83" font-size="11" fill="#222">HTTP 80</text>
+
+  <rect x="90" y="100" width="520" height="120" rx="8" fill="#EAF6E3" stroke="#2E7D32" stroke-width="1.4"/>
+  <text x="105" y="120" font-size="11.5" font-weight="bold" fill="#2E7D32">Flyfast-public01 / 02 · 172.16.0.0/24, 172.16.1.0/24 (Public)</text>
+
+  <rect x="115" y="135" width="220" height="72" rx="6" fill="white" stroke="#ED7100" stroke-width="1.6"/>
+  <text x="225" y="163" font-size="13" font-weight="bold" text-anchor="middle" fill="#B75900">ALB</text>
+  <text x="225" y="182" font-size="9.5" text-anchor="middle" fill="#444">Application Load Balancer</text>
+  <text x="225" y="196" font-size="9.5" text-anchor="middle" fill="#444">HTTP 80 트래픽 분산</text>
+
+  <rect x="365" y="135" width="220" height="72" rx="6" fill="white" stroke="#ED7100" stroke-width="1.6"/>
+  <text x="475" y="163" font-size="13" font-weight="bold" text-anchor="middle" fill="#B75900">bastion</text>
+  <text x="475" y="182" font-size="9.5" text-anchor="middle" fill="#444">SSH 22 · 관리 접속 경유 서버</text>
+
+  <line x1="225" y1="207" x2="225" y2="268" stroke="#333" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <text x="235" y="243" font-size="11" fill="#222">TCP 80</text>
+
+  <line x1="475" y1="207" x2="475" y2="268" stroke="#888" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#arrowGray)"/>
+  <text x="486" y="243" font-size="10" fill="#777">SSH 22 (내부 전달)</text>
+
+  <rect x="90" y="270" width="520" height="100" rx="8" fill="#E7F2FB" stroke="#0973B7" stroke-width="1.4"/>
+  <text x="105" y="290" font-size="11.5" font-weight="bold" fill="#0973B7">Flyfast-front01 / 02 · 172.16.10.0/24, 172.16.11.0/24 (Private)</text>
+
+  <rect x="115" y="303" width="470" height="52" rx="6" fill="white" stroke="#ED7100" stroke-width="1.6"/>
+  <text x="350" y="325" font-size="13" font-weight="bold" text-anchor="middle" fill="#B75900">web</text>
+  <text x="350" y="343" font-size="9.5" text-anchor="middle" fill="#444">Nginx + React 정적 파일 · /api 프록시</text>
+
+  <line x1="225" y1="370" x2="225" y2="418" stroke="#333" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <text x="235" y="398" font-size="11" fill="#222">TCP 8000</text>
+
+  <rect x="90" y="420" width="520" height="120" rx="8" fill="#E7F2FB" stroke="#0973B7" stroke-width="1.4"/>
+  <text x="105" y="440" font-size="11.5" font-weight="bold" fill="#0973B7">Flyfast-backend01 / 02 · 172.16.20.0/24, 172.16.21.0/24 (Private)</text>
+
+  <rect x="115" y="455" width="220" height="72" rx="6" fill="white" stroke="#ED7100" stroke-width="1.6"/>
+  <text x="225" y="483" font-size="13" font-weight="bold" text-anchor="middle" fill="#B75900">api</text>
+  <text x="225" y="502" font-size="9.5" text-anchor="middle" fill="#444">FastAPI / Uvicorn · 예매 도메인 로직</text>
+
+  <rect x="365" y="455" width="220" height="72" rx="6" fill="white" stroke="#ED7100" stroke-width="1.6"/>
+  <text x="475" y="483" font-size="13" font-weight="bold" text-anchor="middle" fill="#B75900">redis</text>
+  <text x="475" y="502" font-size="9.5" text-anchor="middle" fill="#444">좌석 선점 락(TTL) · 세션/캐시</text>
+
+  <line x1="335" y1="491" x2="363" y2="491" stroke="#333" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <text x="349" y="482" font-size="10" text-anchor="middle" fill="#222">6379</text>
+
+  <line x1="225" y1="527" x2="225" y2="568" stroke="#333" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <text x="235" y="553" font-size="11" fill="#222">TCP 3306</text>
+
+  <rect x="90" y="570" width="520" height="120" rx="8" fill="#E7F2FB" stroke="#0973B7" stroke-width="1.4"/>
+  <text x="105" y="590" font-size="11.5" font-weight="bold" fill="#0973B7">Flyfast-db01 / 02 · 172.16.30.0/24, 172.16.31.0/24 (Private)</text>
+
+  <rect x="115" y="605" width="220" height="72" rx="6" fill="white" stroke="#ED7100" stroke-width="1.6"/>
+  <text x="225" y="633" font-size="13" font-weight="bold" text-anchor="middle" fill="#B75900">mysql</text>
+  <text x="225" y="652" font-size="9.5" text-anchor="middle" fill="#444">예매·좌석 데이터</text>
+
+  <text x="365" y="622" font-size="10" fill="#333">· NAT Gateway 경유 아웃바운드만 허용</text>
+  <text x="365" y="642" font-size="10" fill="#333">  (자체 인터넷 인바운드 없음)</text>
+  <text x="365" y="662" font-size="10" fill="#333">· Flyfast-db-sg 인바운드는 Flyfast-api-sg 에서만 허용</text>
+
+  <text x="90" y="722" font-size="10" fill="#666">* 프라이빗 서브넷의 아웃바운드(패키지 설치 등)는 각 AZ의 NAT Gateway를 경유한다.</text>
+</svg>
+<p class="diagram-caption">[그림 2] 계층 간 트래픽 흐름과 허용 포트</p>
+</div>
+
+<h3>2.3 보안그룹 설계</h3>
+<table>
+<tr><th>보안그룹</th><th>대상</th><th>인바운드 규칙</th><th>출발지</th></tr>
+<tr><td>Flyfast-alb-sg</td><td>ALB</td><td>TCP 80</td><td>0.0.0.0/0</td></tr>
+<tr><td>Flyfast-web-sg</td><td>web</td><td>TCP 80</td><td>Flyfast-alb-sg</td></tr>
+<tr><td>Flyfast-api-sg</td><td>api</td><td>TCP 8000</td><td>Flyfast-web-sg</td></tr>
+<tr><td>redis-sg</td><td>redis</td><td>TCP 6379</td><td>Flyfast-api-sg</td></tr>
+<tr><td>Flyfast-db-sg</td><td>mysql</td><td>TCP 3306</td><td>Flyfast-api-sg</td></tr>
+<tr><td>Flyfast-bastion-sg</td><td>bastion</td><td>TCP 22, ICMP</td><td>관리자 고정 IP /32</td></tr>
+</table>
+<p><b>핵심</b>: 인터넷 공개 범위는 ALB의 HTTP 포트만 허용한다. Web·API·Redis·DB는 보안그룹 참조로 연결하여 외부에서 직접 접근할 수 없고, SSH는 배포 당시 관리자 IP로 제한했다.</p>
+
+<h3>2.4 라우팅 테이블</h3>
+<table>
+<tr><th>라우팅 테이블</th><th>연결 서브넷</th><th>기본 경로</th><th>게이트웨이</th></tr>
+<tr><td>Flyfast-public-rt</td><td>public01, public02</td><td>0.0.0.0/0</td><td>Internet Gateway</td></tr>
+<tr><td>Flyfast-private-rt-a</td><td>front01, backend01, db01</td><td>0.0.0.0/0</td><td>NAT Gateway-a</td></tr>
+<tr><td>Flyfast-private-rt-c</td><td>front02, backend02, db02</td><td>0.0.0.0/0</td><td>NAT Gateway-c</td></tr>
+</table>
+
+<h3>2.5 기술 스택</h3>
+<table>
+<tr><th>구분</th><th>기술 / 버전</th><th>적용 원칙</th></tr>
+<tr><td>Frontend</td><td>React 19 + Vite</td><td>Vite 기반 개발·빌드, Next.js 미사용</td></tr>
+<tr><td>Backend</td><td>FastAPI 0.116 (Python)</td><td>REST API <code>/api/v1</code> 구현 기준</td></tr>
+<tr><td>Database</td><td>MySQL 8.0</td><td>Native SQL 직접 연동, ORM 미사용</td></tr>
+<tr><td>Cache</td><td>Redis 7.x</td><td>검색 캐시와 좌석 선점 TTL</td></tr>
+<tr><td>Infra</td><td>Terraform, AWS EC2/VPC/NAT/ALB</td><td>2개 AZ 인프라 코드화 및 재현</td></tr>
+</table>
+<blockquote>화면 표시 기준: Front version v1.1.0 · Server version v1.0.0 · Flyfast-web-a 172.16.10.10 · Flyfast-web-c 172.16.11.10</blockquote>
+
+<hr>
+
+<h2>3. 요구사항 정의</h2>
+
+<h3>3.1 사용자 정의</h3>
+<table>
+<tr><th>역할</th><th>설명</th><th>주요 행위</th></tr>
+<tr><td>방문자</td><td>로그인 전 사용자</td><td>노선·날짜·인원 입력, 항공편 검색</td></tr>
+<tr><td>회원(예정)</td><td>가입 사용자</td><td>항공편 예약, 예약 내역 조회, 취소</td></tr>
+<tr><td>관리자(예정)</td><td>서비스 운영자</td><td>항공편·운임 관리, 예약 현황 조회</td></tr>
+</table>
+
+<h3>3.2 기능 요구사항</h3>
+<table>
+<tr><th>ID</th><th>기능</th><th>상세</th><th>우선순위</th><th>상태</th></tr>
+<tr><td>F-01</td><td>노선 선택</td><td>ICN/NRT/KIX/FUK/BKK 출·도착 선택 및 교환</td><td>필수</td><td>완료</td></tr>
+<tr><td>F-02</td><td>여정 입력</td><td>왕복 날짜와 성인 1~9명 선택</td><td>필수</td><td>완료</td></tr>
+<tr><td>F-03</td><td>항공편 검색</td><td>검색 조건을 결과 영역에 반영하고 자동 스크롤</td><td>필수</td><td>완료</td></tr>
+<tr><td>F-04</td><td>직항 필터</td><td>직항편만 즉시 필터링</td><td>필수</td><td>완료</td></tr>
+<tr><td>F-05</td><td>항공편 선택</td><td>추천편 및 일반편 선택 상태 표시</td><td>필수</td><td>완료</td></tr>
+<tr><td>F-06</td><td>반응형 UI</td><td>모바일·태블릿·데스크톱 레이아웃</td><td>필수</td><td>완료</td></tr>
+<tr><td>F-07</td><td>시스템 정보</td><td>Front/Server 버전, 서버명·IP 화면 표시</td><td>필수</td><td>완료</td></tr>
+<tr><td>F-08</td><td>회원 인증</td><td>가입·로그인·JWT 세션</td><td>필수</td><td>설계</td></tr>
+<tr><td>F-09</td><td>예약 확정</td><td>승객 정보·좌석·결제(Mock, 실제 PG 미연동) 후 예약번호 발급</td><td>필수</td><td>설계</td></tr>
+<tr><td>F-10</td><td>예약 취소</td><td>정책 확인 후 취소·좌석 반환</td><td>선택</td><td>설계</td></tr>
+<tr><td>F-11</td><td>실시간 운임</td><td>외부 항공 API 운임·재고 동기화</td><td>선택</td><td>미구현</td></tr>
+</table>
+
+<h3>3.3 비기능 요구사항</h3>
+<table>
+<tr><th>ID</th><th>구분</th><th>요구사항</th><th>검증 결과</th></tr>
+<tr><td>N-01</td><td>가용성</td><td>Web을 2개 AZ에 배치하고 ALB로 분산</td><td>통과</td></tr>
+<tr><td>N-02</td><td>보안</td><td>DB·Redis·API는 인터넷 직접 접근 차단</td><td>통과</td></tr>
+<tr><td>N-03</td><td>보안</td><td>IMDSv2 강제, EBS gp3 암호화</td><td>미적용 (<code>ec2.tf</code>에 <code>metadata_options</code>/<code>root_block_device</code> 암호화 설정 없음 — 추후 반영 예정)</td></tr>
+<tr><td>N-04</td><td>품질</td><td>프로덕션 빌드 및 서버 렌더링 테스트 자동화</td><td>통과</td></tr>
+<tr><td>N-05</td><td>접근성</td><td>폼·버튼에 접근 가능한 레이블 제공</td><td>반영</td></tr>
+<tr><td>N-06</td><td>스택</td><td>Vite 사용, Next.js·ORM 미사용, MySQL 8 고정</td><td>반영</td></tr>
+</table>
+
+<h3>3.4 주요 유스케이스 — 항공편 검색 및 선택</h3>
+<p><b>액터</b>: 방문자 &nbsp;&nbsp; <b>사전 조건</b>: Flyfast 웹사이트 접속</p>
+<p>① 출발지와 도착지를 선택한다. ② 왕복 날짜와 여행 인원을 지정한다. ③ 항공권 검색을 실행한다. ④ 직항 여부·시간·가격을 비교한다. ⑤ 원하는 항공편을 선택한다. ⑥ 현재 데모에서는 선택 안내를 표시하며, 예약·결제는 후속 API 단계에서 연결한다.</p>
+
+<hr>
+
+<h2>4. 데이터베이스 설계</h2>
+
+<h3>4.1 예약 도메인 ERD (설계안)</h3>
+<pre>users (PK id, email UNIQUE, name, password_hash)
+  └─1:N─ bookings (PK id, FK user_id, booking_no UNIQUE, status)
+              ├─1:N─ passengers (PK id, FK booking_id, name, seat_no)
+              └─1:N─ payments (PK id, FK booking_id, amount, status)
+
+flights (PK id, flight_no, origin, destination)
+  └─1:N─ flight_schedules (PK id, FK flight_id, depart_at, arrival_at)
+              └─1:N─ seats (PK id, FK schedule_id, seat_no, status)</pre>
+<blockquote>[그림 3] Flyfast 예약 데이터 모델 — 백엔드 구현 단계에서 적용 예정</blockquote>
+
+<h3>4.2 주요 제약 조건 및 인덱스</h3>
+<table>
+<tr><th>대상</th><th>제약·인덱스</th><th>목적</th></tr>
+<tr><td>users</td><td>UNIQUE(email)</td><td>로그인 계정 중복 방지</td></tr>
+<tr><td>flights</td><td>UNIQUE(flight_no)</td><td>항공편 코드 중복 방지</td></tr>
+<tr><td>flight_schedules</td><td>INDEX(flight_id, depart_at)</td><td>노선·날짜 검색 성능 확보</td></tr>
+<tr><td>bookings</td><td>UNIQUE(booking_no)</td><td>예약번호 중복 발급 방지</td></tr>
+<tr><td>passengers</td><td>UNIQUE(booking_id, seat_no)</td><td>한 예약 내 좌석 중복 방지</td></tr>
+<tr><td>seats</td><td>UNIQUE(schedule_id, seat_no)</td><td>동일 운항편 좌석 중복 판매 방어</td></tr>
+<tr><td>payments</td><td>UNIQUE(booking_id)</td><td>한 예약에 유효 결제 1건 대응</td></tr>
+</table>
+
+<h3>4.3 Redis 키 설계</h3>
+<table>
+<tr><th>용도</th><th>키 패턴</th><th>TTL</th><th>설명</th></tr>
+<tr><td>좌석 선점</td><td><code>seat:hold:{scheduleId}:{seatNo}</code></td><td>10분</td><td>SET NX EX로 동시 선택 1건만 허용</td></tr>
+<tr><td>검색 캐시</td><td><code>search:{origin}:{dest}:{date}</code></td><td>5분</td><td>동일 조건 반복 조회 응답 캐시</td></tr>
+<tr><td>Refresh Token</td><td><code>auth:refresh:{userId}</code></td><td>14일</td><td>재로그인 시 기존 세션 교체</td></tr>
+<tr><td>운임 캐시</td><td><code>fare:{scheduleId}:{class}</code></td><td>1분</td><td>외부 운임 API 호출량 제한</td></tr>
+</table>
+<p><b>현재 상태</b>: Terraform은 Redis·MySQL 역할의 EC2와 내부 통신 경로를 생성했다. 데이터베이스 스키마와 캐시 키는 설계 단계이며, 실제 서비스 설치·마이그레이션은 백엔드 구현 시 진행한다.</p>
+
+<hr>
+
+<h2>5. API 명세 (설계안)</h2>
+<p><b>공통</b>: Base URL = <code>/api/v1</code>, 인증 API는 <code>Authorization: Bearer {accessToken}</code> 헤더를 사용한다.</p>
+<table>
+<tr><th>Method</th><th>URL</th><th>설명</th><th>권한</th><th>상태</th></tr>
+<tr><td>POST</td><td>/auth/signup</td><td>회원가입</td><td>ALL</td><td>설계</td></tr>
+<tr><td>POST</td><td>/auth/login</td><td>Access/Refresh Token 발급</td><td>ALL</td><td>설계</td></tr>
+<tr><td>GET</td><td>/airports</td><td>공항·도시 검색</td><td>ALL</td><td>설계</td></tr>
+<tr><td>GET</td><td>/flights/search</td><td>노선·날짜·인원 기반 항공편 검색</td><td>ALL</td><td>설계</td></tr>
+<tr><td>GET</td><td>/flights/{id}</td><td>항공편·운임·잔여 좌석 상세</td><td>ALL</td><td>설계</td></tr>
+<tr><td>POST</td><td>/schedules/{id}/seats/hold</td><td>좌석 10분 선점</td><td>USER</td><td>설계</td></tr>
+<tr><td>DELETE</td><td>/schedules/{id}/seats/hold</td><td>좌석 선점 해제</td><td>USER</td><td>설계</td></tr>
+<tr><td>POST</td><td>/bookings</td><td>예약 및 승객 정보 생성</td><td>USER</td><td>설계</td></tr>
+<tr><td>POST</td><td>/bookings/{id}/payments</td><td>결제 승인(Mock) 후 예약 확정 — 실제 PG 연동 없음</td><td>USER</td><td>설계</td></tr>
+<tr><td>GET</td><td>/bookings/me</td><td>내 예약 목록</td><td>USER</td><td>설계</td></tr>
+<tr><td>PATCH</td><td>/bookings/{id}/cancel</td><td>예약 취소 및 좌석 반환</td><td>USER</td><td>설계</td></tr>
+<tr><td>POST</td><td>/admin/flights</td><td>항공편·운항 일정 등록</td><td>ADMIN</td><td>설계</td></tr>
+</table>
+
+<h3>5.1 공통 응답 코드</h3>
+<table>
+<tr><th>코드</th><th>의미</th><th>발생 상황</th></tr>
+<tr><td>400</td><td>INVALID_INPUT</td><td>공항·날짜·인원 입력값 검증 실패</td></tr>
+<tr><td>401</td><td>UNAUTHORIZED</td><td>토큰 없음 또는 만료</td></tr>
+<tr><td>403</td><td>FORBIDDEN</td><td>관리자 전용 API 호출</td></tr>
+<tr><td>404</td><td>FLIGHT_NOT_FOUND</td><td>항공편 또는 운항 일정 없음</td></tr>
+<tr><td>409</td><td>SEAT_ALREADY_HELD</td><td>다른 사용자가 이미 선점한 좌석</td></tr>
+<tr><td>410</td><td>HOLD_EXPIRED</td><td>선점 시간 경과 후 결제 시도</td></tr>
+<tr><td>422</td><td>FARE_CHANGED</td><td>결제 전 운임이 변경됨</td></tr>
+</table>
+
+<h3>5.2 검색 요청 예시</h3>
+<pre>GET /api/v1/flights/search?origin=ICN&amp;destination=NRT&amp;depart=2026-09-04&amp;return=2026-09-08&amp;adults=1&amp;direct=true</pre>
+<p><b>연동 원칙</b>: 현재 React 화면의 샘플 배열을 API 응답 모델로 교체하되, 로딩·오류·빈 결과 상태를 명시적으로 제공한다. 결제(Mock) 확정 전에는 운임과 좌석 재고를 반드시 다시 검증한다. <b>결제는 실제 PG사 연동 없이 성공/실패를 시뮬레이션하는 Mock 처리로 한정한다</b> (1.3절 개발 범위 참고).</p>
+
+<hr>
+
+<h2>6. 테스트 및 배포 검증</h2>
+
+<h3>6.1 애플리케이션 테스트</h3>
+<table>
+<tr><th>No</th><th>시나리오</th><th>기대 결과</th><th>결과</th></tr>
+<tr><td>T-01</td><td>프로덕션 빌드</td><td>Vinext 5단계 빌드 성공</td><td>통과</td></tr>
+<tr><td>T-02</td><td>서버 렌더링</td><td>Flyfast 제목·검색 UI·OG 메타 출력</td><td>통과</td></tr>
+<tr><td>T-03</td><td>출·도착지 교환</td><td>두 공항 값 즉시 교환</td><td>통과</td></tr>
+<tr><td>T-04</td><td>여행자 인원</td><td>1~9명 범위 유지</td><td>통과</td></tr>
+<tr><td>T-05</td><td>직항 필터</td><td>경유편 제외 후 목록 갱신</td><td>통과</td></tr>
+<tr><td>T-06</td><td>항공편 선택</td><td>선택 카드와 안내 문구 표시</td><td>통과</td></tr>
+<tr><td>T-07</td><td>반응형 화면</td><td>700px 이하에서 모바일 레이아웃 적용</td><td>통과</td></tr>
+<tr><td>T-08</td><td>시스템 정보</td><td>버전·서버명·IP와 고정 기술 스택 출력</td><td>통과</td></tr>
+</table>
+
+<h3>6.2 AWS 인프라 검증</h3>
+<table>
+<tr><th>항목</th><th>검증 방법</th><th>결과</th></tr>
+<tr><td>Terraform 구문</td><td>terraform validate</td><td>성공</td></tr>
+<tr><td>구성 일치</td><td>terraform plan</td><td>No changes</td></tr>
+<tr><td>EC2 10대</td><td>AWS 상태 및 시스템 검사</td><td>running / ok</td></tr>
+<tr><td>ALB 대상</td><td>Web-a, Web-c Target Health</td><td>healthy</td></tr>
+<tr><td>웹 응답</td><td>ALB URL HTTP 요청</td><td>200 / title=Flyfast</td></tr>
+<tr><td>Bastion SSH</td><td>생성 키로 Amazon Linux 접속</td><td>성공</td></tr>
+<tr><td>보안 경로</td><td>SG 참조 및 프라이빗 IP 확인</td><td>통과</td></tr>
+</table>
+
+<h3>6.3 배포 스냅샷</h3>
+<table>
+<tr><th>리소스</th><th>수량 / 상태</th></tr>
+<tr><td>Terraform 관리 리소스</td><td>50개</td></tr>
+<tr><td>EC2</td><td>10대 · 2개 AZ</td></tr>
+<tr><td>NAT Gateway</td><td>2대 · AZ별 독립</td></tr>
+<tr><td>Application Load Balancer</td><td>1대 · Web 대상 2대</td></tr>
+<tr><td>Bastion Public IP</td><td>3.36.60.37 / 52.78.69.247</td></tr>
+<tr><td>VPC</td><td>vpc-0867d5f780dde8edf</td></tr>
+</table>
+<blockquote>⚠️ 위 스냅샷은 별도 AWS 계정(<code>738815760058</code>)에 구축된 인스턴스 기준이다. 현재 우리가 직접 운영 중인 계정(<code>379937169195</code>)의 실제 값(VPC <code>vpc-01016078a648a82a5</code>, Bastion <code>3.35.175.77</code> / <code>43.200.8.210</code>, ALB/ASG 미생성 — <code>ALB_ASG_GUIDE.md</code> 진행 후 갱신 예정)과는 다르니 혼동하지 말 것. 두 인프라 중 어느 쪽을 팀 공식 인프라로 삼을지는 별도 정리가 필요하다 (7.1절 참고).</blockquote>
+<blockquote>검증 기준일: 2026.08.18. AWS 리소스 상태는 시간에 따라 변할 수 있으므로 운영 점검 시 AWS 콘솔과 Terraform 상태를 함께 확인한다.</blockquote>
+
+<hr>
+
+<h2>7. 한계 및 개선 계획</h2>
+<table>
+<tr><th>구분</th><th>현재 상태 / 한계</th><th>개선 방향</th></tr>
+<tr><td>서비스 기능</td><td>검색 UI와 시스템 정보 화면 구현</td><td>FastAPI 실데이터 API 연결</td></tr>
+<tr><td>인증</td><td>로그인 버튼은 안내 동작만 제공</td><td>JWT·Refresh Token 기반 회원 인증</td></tr>
+<tr><td>예약/결제</td><td>실제 좌석 선점·결제(Mock) 미연동</td><td>Redis TTL 선점 + 결제 Mock 상태 흐름 검증 (실제 PG 연동은 범위 외)</td></tr>
+<tr><td>DB</td><td>MySQL 8 역할 EC2 생성, 스키마 미배포</td><td>ORM 없이 SQL 스크립트로 배포 후 RDS 전환</td></tr>
+<tr><td>Cache</td><td>Redis 역할 EC2만 생성</td><td>ElastiCache로 전환하고 장애 복구 구성</td></tr>
+<tr><td>HTTPS</td><td>AWS ALB는 현재 HTTP 80 제공</td><td>도메인·ACM 인증서·HTTPS 리스너 추가</td></tr>
+<tr><td>배포</td><td>Nginx 랜딩과 전체 React 데모가 분리</td><td>CI/CD로 동일 빌드 산출물을 Web 2대에 배포</td></tr>
+<tr><td>관측성</td><td>기본 상태 검사 중심</td><td>CloudWatch 로그·메트릭·알람 대시보드</td></tr>
+<tr><td>상태 관리</td><td>Terraform state가 로컬에만 저장됨 (원격 백엔드 미전환)</td><td>S3 원격 상태 + DynamoDB 잠금 + 버전 관리 — <b>보류, 추후 진행 예정</b> (지금은 로컬 유지)</td></tr>
+<tr><td>비용</td><td>EC2 10대와 NAT 2대가 상시 실행</td><td>개발 환경 스케줄 종료·Spot/관리형 전환 검토</td></tr>
+</table>
+
+<h3>7.1 단계별 개발 로드맵</h3>
+<table>
+<tr><th>단계</th><th>목표</th><th>완료 조건</th></tr>
+<tr><td>1단계 · 현재</td><td>Vite 웹 UI와 멀티 AZ 인프라 기반 확보</td><td>검색·시스템 정보 화면, Terraform 검증</td></tr>
+<tr><td>2단계</td><td>FastAPI API 및 MySQL 8 Native SQL</td><td>API 테스트와 프론트 실데이터 연동</td></tr>
+<tr><td>3단계</td><td>Redis 좌석 선점과 결제 상태 흐름</td><td>동시 요청에서 좌석 중복 0건</td></tr>
+<tr><td>4단계</td><td>HTTPS·CI/CD·모니터링</td><td>자동 배포, 알람, 운영 체크리스트</td></tr>
+<tr><td>5단계</td><td>관리형 서비스와 자동 확장</td><td>RDS/ElastiCache/Auto Scaling 전환</td></tr>
+</table>
+<p>현재 Flyfast는 사용 가능한 프론트엔드 데모와 실제 AWS 네트워크·컴퓨팅 기반을 확보한 상태다. 다음 개발의 중심은 샘플 데이터를 예약 API로 대체하고, 역할별 EC2에 실제 백엔드·데이터 서비스를 배포하는 것이다.</p>
+
+<hr>
+
+<h2>8. 리포지토리 구조 (현재 기준)</h2>
+<blockquote>현재 이 인프라 저장소 폴더에는 Terraform 코드와 운영 문서만 있고, 프론트엔드(React)·백엔드(FastAPI) 코드는 아직 이 폴더에 포함되어 있지 않다. 팀 리포지토리 구조를 하나로 합칠지, 인프라/앱을 별도 저장소로 유지할지는 팀원과 협의가 필요하다.</blockquote>
+<pre>Flyfast_project/                    # 인프라 + 운영 문서 (현재 이 폴더)
+├── provider.tf                     # Terraform/AWS 프로바이더 버전
+├── values.tf                       # region, prefix, CIDR 등 변수
+├── network.tf                      # VPC, 서브넷, IGW, NAT GW, 라우트 테이블, 보안그룹
+├── key.tf                          # SSH 키페어 생성 및 로컬 저장
+├── ec2.tf                          # Bastion/Web/API/Redis/MySQL 10대
+├── output.tf                       # vpc_id, IP, key_path 등 출력값
+├── terraform.tfstate*              # ⚠ 민감정보(SSH 프라이빗 키 평문) 포함 — git 커밋 금지
+├── Terraform-Flyfast-plan.md       # 최초 인프라 설계 명세
+├── PROJECT_PLAN.md                 # 프로젝트 진행 상태 추적 문서 (이 명세서와 별도 관리 중)
+├── INSTALL_GUIDE.md                # MariaDB/Valkey/FastAPI/Nginx 설치 명령어 정리
+├── ALB_ASG_GUIDE.md                # Web 계층 ALB+ASG 콘솔 구축 가이드
+├── Flyfast_프로젝트_명세서.{md,html,pdf}  # 이 문서
+└── airplane-project-v1.png         # 네트워크 구성도 원본 이미지
+
+(별도 위치 — 아직 미확정)
+├── frontend/                       # React + Vite (경로 미정)
+└── backend/                        # FastAPI (경로 미정)</pre>
+
+<hr>
+<p class="footer-note">문서 끝</p>
+
+</body>
+</html>

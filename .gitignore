@@ -1,0 +1,28 @@
+# Terraform state — 민감정보(SSH 프라이빗 키 평문 등) 포함, 절대 커밋 금지
+terraform.tfstate
+terraform.tfstate.backup
+terraform.tfstate.*.backup
+*.tfstate
+*.tfstate.*
+
+# Terraform local cache / providers
+.terraform/
+.terraform.lock.hcl
+crash.log
+crash.*.log
+*.tfvars
+*.tfvars.json
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# SSH keys (로컬 저장 경로: ~/keys/ 이지만 혹시 모를 실수 방지용)
+*.pem
+*.key
+
+# macOS
+.DS_Store
+
+# 임시 산출물
+*.log
