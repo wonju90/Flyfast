@@ -41,6 +41,19 @@ export default function FlightDetailPage() {
     loadFlight();
   }, [loadFlight]);
 
+  // 왕복에서 가는 편 -> 오는 편으로 넘어갈 때도 같은 컴포넌트가 재사용되고 scheduleId만
+  // 바뀐다. 이 상태를 초기화하지 않으면 가는 편에서 남은 step="confirmed" 등이 그대로
+  // 이어져서, 오는 편 좌석을 실제로 선택/예약/결제하지 않았는데도 확정 화면이 떠버린다.
+  useEffect(() => {
+    setError(null);
+    setSelectedSeats([]);
+    setStep("browsing");
+    setSecondsLeft(0);
+    setPassengerNames({});
+    setBooking(null);
+    setPaymentResult(null);
+  }, [scheduleId]);
+
   useEffect(() => {
     if (step !== "held") return undefined;
     const timer = setInterval(() => {
