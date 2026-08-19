@@ -4,10 +4,18 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import SearchPage from "./SearchPage";
 
+const { MOCK_AIRPORTS } = vi.hoisted(() => ({
+  MOCK_AIRPORTS: [
+    { code: "ICN", name: "인천", continent: "아시아" },
+    { code: "NRT", name: "도쿄(나리타)", continent: "아시아" },
+    { code: "CDG", name: "파리(샤를 드골)", continent: "유럽" },
+  ],
+}));
+
 vi.mock("../api/client", () => ({
   api: {
     health: vi.fn().mockResolvedValue({ server_ip: "127.0.0.1" }),
-    searchAirports: vi.fn().mockResolvedValue({ airports: [] }),
+    searchAirports: vi.fn().mockResolvedValue({ airports: MOCK_AIRPORTS }),
     priceCalendar: vi.fn().mockResolvedValue({ prices: {} }),
   },
 }));
@@ -47,17 +55,53 @@ describe("SearchPage", () => {
     expect(screen.getByRole("button", { name: "귀국일" })).toBeInTheDocument();
   });
 
+  it("defaults to ICN/NRT shown as Korean city names", async () => {
+    await renderPage();
+
+    expect(screen.getByRole("button", { name: "출발지" })).toHaveTextContent("인천");
+    expect(screen.getByRole("button", { name: "도착지" })).toHaveTextContent("도쿄(나리타)");
+  });
+
+  it("groups airports by continent in the origin picker", async () => {
+    await renderPage();
+    fireEvent.click(screen.getByRole("button", { name: "출발지" }));
+
+    expect(screen.getByText("아시아")).toBeInTheDocument();
+    expect(screen.getByText("유럽")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "파리(샤를 드골)" })).toBeInTheDocument();
+  });
+
+  it("selects a city from the picker, updates the trigger, and closes the popover", async () => {
+    await renderPage();
+    fireEvent.click(screen.getByRole("button", { name: "도착지" }));
+    fireEvent.click(screen.getByRole("button", { name: "파리(샤를 드골)" }));
+
+    expect(screen.getByRole("button", { name: "도착지" })).toHaveTextContent("파리(샤를 드골)");
+    expect(screen.queryByText("아시아")).not.toBeInTheDocument();
+  });
+
+  it("closes the picker when clicking outside without changing the selection", async () => {
+    await renderPage();
+    fireEvent.click(screen.getByRole("button", { name: "출발지" }));
+    expect(screen.getByText("아시아")).toBeInTheDocument();
+
+    fireEvent.mouseDown(document.body);
+
+    expect(screen.queryByText("아시아")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "출발지" })).toHaveTextContent("인천");
+  });
+
   it("swaps origin and destination when the swap button is clicked", async () => {
     await renderPage();
-    const origin = screen.getByPlaceholderText("ICN");
-    const destination = screen.getByPlaceholderText("NRT");
-    expect(origin.value).toBe("ICN");
-    expect(destination.value).toBe("NRT");
+    const originTrigger = screen.getByRole("button", { name: "출발지" });
+    const destinationTrigger = screen.getByRole("button", { name: "도착지" });
+    expect(originTrigger).toHaveTextContent("인천");
+    expect(destinationTrigger).toHaveTextContent("도쿄(나리타)");
 
     fireEvent.click(screen.getByRole("button", { name: "출발지/도착지 교환" }));
 
-    expect(origin.value).toBe("NRT");
-    expect(destination.value).toBe("ICN");
+    expect(originTrigger).toHaveTextContent("도쿄(나리타)");
+    expect(destinationTrigger).toHaveTextContent("인천");
   });
 
   it("shows an error when submitting with no depart date selected", async () => {
@@ -67,34 +111,13 @@ describe("SearchPage", () => {
     expect(screen.getByText("출발일을 선택해주세요.")).toBeInTheDocument();
   });
 
-  it("shows an error when origin and destination are the same", async () => {
+  it("shows an error when destination is changed to match the origin", async () => {
     await renderPage();
-    fireEvent.change(screen.getByPlaceholderText("NRT"), { target: { value: "ICN" } });
+    fireEvent.click(screen.getByRole("button", { name: "도착지" }));
+    fireEvent.click(screen.getByRole("button", { name: "인천" }));
 
     fireEvent.click(screen.getByRole("button", { name: "항공편 검색" }));
 
     expect(screen.getByText("출발지와 도착지는 달라야 합니다.")).toBeInTheDocument();
-  });
-
-  it("clears a prefilled airport input on focus and restores it on blur without a selection", async () => {
-    await renderPage();
-    const origin = screen.getByPlaceholderText("ICN");
-
-    fireEvent.focus(origin);
-    expect(origin.value).toBe("");
-
-    fireEvent.blur(origin);
-    expect(origin.value).toBe("ICN");
-  });
-
-  it("keeps a typed airport value on blur instead of reverting it", async () => {
-    await renderPage();
-    const origin = screen.getByPlaceholderText("ICN");
-
-    fireEvent.focus(origin);
-    fireEvent.change(origin, { target: { value: "GMP" } });
-    fireEvent.blur(origin);
-
-    expect(origin.value).toBe("GMP");
   });
 });

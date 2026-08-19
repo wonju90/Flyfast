@@ -325,6 +325,67 @@ select {
   position: relative;
 }
 
+.airport-field {
+  position: relative;
+  flex: 1;
+}
+
+.airport-popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 30;
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 12px 28px rgba(15, 30, 60, 0.18);
+  padding: 14px;
+  width: min(340px, calc(100vw - 32px));
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.airport-continent-group + .airport-continent-group {
+  margin-top: 12px;
+}
+
+.airport-continent-label {
+  margin: 0 0 6px;
+  color: #888;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.airport-city-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
+
+.airport-city-btn {
+  border: 1px solid var(--border);
+  background: white;
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 0.88rem;
+  color: #222;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.airport-city-btn:hover {
+  border-color: var(--accent);
+}
+
+.airport-city-selected {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+
 .date-trigger {
   width: 100%;
   padding: 8px 10px;

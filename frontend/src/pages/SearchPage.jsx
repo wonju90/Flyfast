@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
+import AirportPicker from "../components/AirportPicker";
 import ApiServerBanner from "../components/ApiServerBanner";
 import PriceCalendar from "../components/PriceCalendar";
 import { useAuth } from "../context/AuthContext";
@@ -65,20 +66,6 @@ export default function SearchPage() {
 
   function swap() {
     setForm((prev) => ({ ...prev, origin: prev.destination, destination: prev.origin }));
-  }
-
-  // 값이 미리 채워진 채로 포커스하면 브라우저가 datalist를 현재 값으로 필터링해서
-  // 다른 공항이 있어도 하나만 보이므로, 포커스 시 비웠다가 아무것도 안 고르고
-  // 벗어나면 원래 값으로 되돌린다.
-  function handleAirportFocus(e) {
-    e.target.dataset.prevValue = e.target.value;
-    e.target.value = "";
-  }
-
-  function handleAirportBlur(e, field) {
-    if (!e.target.value) {
-      update(field, e.target.dataset.prevValue || "");
-    }
   }
 
   function handleSubmit(e) {
@@ -153,17 +140,13 @@ export default function SearchPage() {
             </div>
 
             <div className="search-row">
-              <label>
-                출발지
-                <input
-                  list="airport-list"
-                  value={form.origin}
-                  onChange={(e) => update("origin", e.target.value.toUpperCase())}
-                  onFocus={handleAirportFocus}
-                  onBlur={(e) => handleAirportBlur(e, "origin")}
-                  placeholder="ICN"
-                />
-              </label>
+              <AirportPicker
+                label="출발지"
+                value={form.origin}
+                airports={airports}
+                onSelect={(code) => update("origin", code)}
+                placeholder="출발지 선택"
+              />
               <button
                 type="button"
                 className="swap-btn"
@@ -172,26 +155,14 @@ export default function SearchPage() {
               >
                 ⇄
               </button>
-              <label>
-                도착지
-                <input
-                  list="airport-list"
-                  value={form.destination}
-                  onChange={(e) => update("destination", e.target.value.toUpperCase())}
-                  onFocus={handleAirportFocus}
-                  onBlur={(e) => handleAirportBlur(e, "destination")}
-                  placeholder="NRT"
-                />
-              </label>
+              <AirportPicker
+                label="도착지"
+                value={form.destination}
+                airports={airports}
+                onSelect={(code) => update("destination", code)}
+                placeholder="도착지 선택"
+              />
             </div>
-
-            <datalist id="airport-list">
-              {airports.map((a) => (
-                <option key={a.code} value={a.code}>
-                  {a.name}
-                </option>
-              ))}
-            </datalist>
 
             <div className="search-row">
               {tripType === "oneway" ? (
