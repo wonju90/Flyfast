@@ -15,8 +15,9 @@ function formatManwon(amount) {
   return `${Math.round(amount / 10000)}만`;
 }
 
-// 왕복 귀국일까지 함께 보여주는 듀얼 달력(2단계)은 아직 없음 — 지금은 출발일 단일 달력만.
-export default function PriceCalendar({ value, minDate, origin, destination, onSelect }) {
+// variant="popover"(기본): 출발일 트리거 아래 단독으로 뜨는 팝오버(1단계, 편도).
+// variant="inline": 왕복에서 가는날/오는날 달력 두 개를 나란히 배치할 때 쓰는 형태(2단계) — 위치 지정 없이 내용만 렌더링.
+export default function PriceCalendar({ value, minDate, origin, destination, onSelect, variant = "popover", label }) {
   const initial = new Date(value || minDate);
   const [viewYear, setViewYear] = useState(initial.getFullYear());
   const [viewMonth, setViewMonth] = useState(initial.getMonth());
@@ -66,7 +67,8 @@ export default function PriceCalendar({ value, minDate, origin, destination, onS
   for (let d = 1; d <= daysInMonth; d++) cells.push(d);
 
   return (
-    <div className="calendar-popover">
+    <div className={variant === "inline" ? "calendar-inline" : "calendar-popover"}>
+      {label && <p className="dual-grid-label">{label}</p>}
       <div className="calendar-header">
         <button type="button" className="calendar-nav-btn" onClick={prevMonth} aria-label="이전 달">
           ‹

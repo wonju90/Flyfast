@@ -42,6 +42,7 @@ export default function SearchPage() {
 
   function selectTripType(next) {
     setTripType(next);
+    setCalendarOpen(false);
     if (next === "oneway") {
       update("returnDate", "");
     }
@@ -198,40 +199,83 @@ export default function SearchPage() {
             </datalist>
 
             <div className="search-row">
-              <label>
-                출발일
-                <div className="date-field" ref={departFieldRef}>
-                  <button
-                    type="button"
-                    className="date-trigger"
-                    onClick={() => setCalendarOpen((prev) => !prev)}
-                  >
-                    {form.depart || "날짜 선택"}
-                  </button>
+              {tripType === "oneway" ? (
+                <label>
+                  출발일
+                  <div className="date-field" ref={departFieldRef}>
+                    <button
+                      type="button"
+                      className="date-trigger"
+                      onClick={() => setCalendarOpen((prev) => !prev)}
+                    >
+                      {form.depart || "날짜 선택"}
+                    </button>
+                    {calendarOpen && (
+                      <PriceCalendar
+                        value={form.depart}
+                        minDate={todayStr()}
+                        origin={form.origin}
+                        destination={form.destination}
+                        onSelect={(d) => {
+                          updateDepart(d);
+                          setCalendarOpen(false);
+                        }}
+                      />
+                    )}
+                  </div>
+                </label>
+              ) : (
+                <div className="date-field date-field-dual" ref={departFieldRef}>
+                  <div className="dual-date-triggers">
+                    <label>
+                      출발일
+                      <button type="button" className="date-trigger" onClick={() => setCalendarOpen(true)}>
+                        {form.depart || "날짜 선택"}
+                      </button>
+                    </label>
+                    <label>
+                      귀국일
+                      <button type="button" className="date-trigger" onClick={() => setCalendarOpen(true)}>
+                        {form.returnDate || "날짜 선택"}
+                      </button>
+                    </label>
+                  </div>
                   {calendarOpen && (
-                    <PriceCalendar
-                      value={form.depart}
-                      minDate={todayStr()}
-                      origin={form.origin}
-                      destination={form.destination}
-                      onSelect={(d) => {
-                        updateDepart(d);
-                        setCalendarOpen(false);
-                      }}
-                    />
+                    <div className="calendar-popover calendar-popover-dual">
+                      <p className="calendar-status">
+                        가는날 <strong>{form.depart || "미선택"}</strong> · 오는날{" "}
+                        <strong>{form.returnDate || "미선택"}</strong>
+                      </p>
+                      <div className="dual-month-grids">
+                        <PriceCalendar
+                          variant="inline"
+                          label="가는날"
+                          value={form.depart}
+                          minDate={todayStr()}
+                          origin={form.origin}
+                          destination={form.destination}
+                          onSelect={(d) => updateDepart(d)}
+                        />
+                        <PriceCalendar
+                          variant="inline"
+                          label="오는날"
+                          value={form.returnDate}
+                          minDate={form.depart || todayStr()}
+                          origin={form.destination}
+                          destination={form.origin}
+                          onSelect={(d) => update("returnDate", d)}
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        className="secondary-btn calendar-apply-btn"
+                        onClick={() => setCalendarOpen(false)}
+                      >
+                        적용
+                      </button>
+                    </div>
                   )}
                 </div>
-              </label>
-              {tripType === "roundtrip" && (
-                <label>
-                  귀국일
-                  <input
-                    type="date"
-                    min={form.depart || todayStr()}
-                    value={form.returnDate}
-                    onChange={(e) => update("returnDate", e.target.value)}
-                  />
-                </label>
               )}
             </div>
 

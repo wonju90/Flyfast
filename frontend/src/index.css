@@ -444,6 +444,53 @@ select {
   text-align: center;
 }
 
+.date-field-dual {
+  flex: 1;
+}
+
+.dual-date-triggers {
+  display: flex;
+  gap: 12px;
+}
+
+.calendar-popover-dual {
+  width: min(600px, calc(100vw - 32px));
+}
+
+.calendar-status {
+  margin: 0 0 10px;
+  color: #555;
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.calendar-status strong {
+  color: var(--navy);
+}
+
+.dual-month-grids {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.calendar-inline {
+  flex: 1;
+  min-width: 240px;
+}
+
+.dual-grid-label {
+  margin: 0 0 6px;
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 0.82rem;
+}
+
+.calendar-apply-btn {
+  width: 100%;
+  margin-top: 12px;
+}
+
 .swap-btn {
   border: 1px solid var(--border);
   background: white;
