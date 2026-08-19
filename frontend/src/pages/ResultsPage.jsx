@@ -3,33 +3,73 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { api } from "../api/client";
 import { translateError } from "../api/errorMessages";
 
-function formatTime(iso) {
-  const d = new Date(iso);
-  return d.toLocaleString("ko-KR", {
-    month: "2-digit",
-    day: "2-digit",
+const AIRLINE_INFO = {
+  KE: { name: "대한항공", color: "#0b3d78" },
+  OZ: { name: "아시아나항공", color: "#8f1b2d" },
+};
+
+function getAirlineInfo(flightNo) {
+  const code = flightNo.slice(0, 2);
+  return AIRLINE_INFO[code] ?? { name: code, color: "var(--navy)" };
+}
+
+function formatClock(iso) {
+  return new Date(iso).toLocaleTimeString("ko-KR", {
     hour: "2-digit",
     minute: "2-digit",
+    hour12: false,
   });
 }
 
+function formatDuration(departIso, arrivalIso) {
+  const mins = Math.round((new Date(arrivalIso) - new Date(departIso)) / 60000);
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  if (h <= 0) return `${m}분`;
+  if (m === 0) return `${h}시간`;
+  return `${h}시간 ${m}분`;
+}
+
 function FlightCard({ f, mode, isSelected, onSelect }) {
+  const airline = getAirlineInfo(f.flight_no);
+  const isFull = f.remaining_seats === 0;
+  const isLow = !isFull && f.remaining_seats < 10;
+
   const content = (
     <>
-      <div className="flight-card-main">
-        <span className="flight-no">{f.flight_no}</span>
-        <span className="flight-card-route">
-          {f.origin} <span aria-hidden="true">→</span> {f.destination}
+      <div className="flight-card-airline">
+        <span className="airline-badge" style={{ background: airline.color }}>
+          {f.flight_no.slice(0, 2)}
         </span>
+        <div className="flight-card-airline-text">
+          <span className="airline-name">{airline.name}</span>
+          <span className="flight-no">{f.flight_no}</span>
+        </div>
       </div>
-      <div className="flight-card-time">
-        {formatTime(f.depart_at)} ~ {formatTime(f.arrival_at)}
+
+      <div className="flight-card-timeline">
+        <div className="flight-card-timepoint">
+          <span className="flight-card-clock">{formatClock(f.depart_at)}</span>
+          <span className="flight-card-airport">{f.origin}</span>
+        </div>
+        <div className="flight-card-duration">
+          <span className="duration-text">{formatDuration(f.depart_at, f.arrival_at)}</span>
+          <span className="duration-line" aria-hidden="true" />
+          <span className="duration-direct">직항</span>
+        </div>
+        <div className="flight-card-timepoint">
+          <span className="flight-card-clock">{formatClock(f.arrival_at)}</span>
+          <span className="flight-card-airport">{f.destination}</span>
+        </div>
       </div>
-      <div className="flight-card-seats">
-        잔여 {f.remaining_seats}석
-        {f.remaining_seats === 0 && <span className="badge-full">매진</span>}
+
+      <div className="flight-card-price-col">
+        {isFull && <span className="badge-full">매진</span>}
+        {isLow && <span className="badge-low">{f.remaining_seats}석 남음</span>}
         {f.from_price != null && (
-          <span className="from-price">{f.from_price.toLocaleString()}원부터</span>
+          <span className="flight-card-price">
+            {f.from_price.toLocaleString()}원<small>부터</small>
+          </span>
         )}
       </div>
     </>
