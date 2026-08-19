@@ -13,7 +13,7 @@ function todayStr() {
 export default function SearchPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const displayName = user?.email ? user.email.split("@")[0] : null;
+  const displayName = user?.name || null;
   const [airports, setAirports] = useState([]);
   const [tripType, setTripType] = useState("oneway"); // "oneway" | "roundtrip"
   const [form, setForm] = useState({
@@ -55,6 +55,20 @@ export default function SearchPage() {
 
   function swap() {
     setForm((prev) => ({ ...prev, origin: prev.destination, destination: prev.origin }));
+  }
+
+  // 값이 미리 채워진 채로 포커스하면 브라우저가 datalist를 현재 값으로 필터링해서
+  // 다른 공항이 있어도 하나만 보이므로, 포커스 시 비웠다가 아무것도 안 고르고
+  // 벗어나면 원래 값으로 되돌린다.
+  function handleAirportFocus(e) {
+    e.target.dataset.prevValue = e.target.value;
+    e.target.value = "";
+  }
+
+  function handleAirportBlur(e, field) {
+    if (!e.target.value) {
+      update(field, e.target.dataset.prevValue || "");
+    }
   }
 
   function handleSubmit(e) {
@@ -135,6 +149,8 @@ export default function SearchPage() {
                   list="airport-list"
                   value={form.origin}
                   onChange={(e) => update("origin", e.target.value.toUpperCase())}
+                  onFocus={handleAirportFocus}
+                  onBlur={(e) => handleAirportBlur(e, "origin")}
                   placeholder="ICN"
                 />
               </label>
@@ -152,6 +168,8 @@ export default function SearchPage() {
                   list="airport-list"
                   value={form.destination}
                   onChange={(e) => update("destination", e.target.value.toUpperCase())}
+                  onFocus={handleAirportFocus}
+                  onBlur={(e) => handleAirportBlur(e, "destination")}
                   placeholder="NRT"
                 />
               </label>

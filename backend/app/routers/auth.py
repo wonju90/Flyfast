@@ -86,7 +86,7 @@ def login(body: LoginRequest):
 
     with engine.connect() as conn:
         user = conn.execute(
-            text("SELECT id, password_hash FROM users WHERE email = :email"),
+            text("SELECT id, password_hash, name FROM users WHERE email = :email"),
             {"email": email},
         ).mappings().first()
 
@@ -103,6 +103,7 @@ def login(body: LoginRequest):
         "refresh_token": refresh_token,
         "token_type": "bearer",
         "expires_in": 30 * 60,
+        "name": user["name"],
     }
 
 
