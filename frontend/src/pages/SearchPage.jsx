@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import ApiServerBanner from "../components/ApiServerBanner";
+import PriceCalendar from "../components/PriceCalendar";
 import { useAuth } from "../context/AuthContext";
 
 function todayStr() {
@@ -25,6 +26,19 @@ export default function SearchPage() {
     direct: true,
   });
   const [error, setError] = useState(null);
+  const [calendarOpen, setCalendarOpen] = useState(false);
+  const departFieldRef = useRef(null);
+
+  useEffect(() => {
+    if (!calendarOpen) return undefined;
+    function handleClickOutside(e) {
+      if (departFieldRef.current && !departFieldRef.current.contains(e.target)) {
+        setCalendarOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [calendarOpen]);
 
   function selectTripType(next) {
     setTripType(next);
@@ -186,12 +200,27 @@ export default function SearchPage() {
             <div className="search-row">
               <label>
                 출발일
-                <input
-                  type="date"
-                  min={todayStr()}
-                  value={form.depart}
-                  onChange={(e) => updateDepart(e.target.value)}
-                />
+                <div className="date-field" ref={departFieldRef}>
+                  <button
+                    type="button"
+                    className="date-trigger"
+                    onClick={() => setCalendarOpen((prev) => !prev)}
+                  >
+                    {form.depart || "날짜 선택"}
+                  </button>
+                  {calendarOpen && (
+                    <PriceCalendar
+                      value={form.depart}
+                      minDate={todayStr()}
+                      origin={form.origin}
+                      destination={form.destination}
+                      onSelect={(d) => {
+                        updateDepart(d);
+                        setCalendarOpen(false);
+                      }}
+                    />
+                  )}
+                </div>
               </label>
               {tripType === "roundtrip" && (
                 <label>

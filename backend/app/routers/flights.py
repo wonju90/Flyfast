@@ -106,6 +106,61 @@ def search_flights(
     return result
 
 
+# /flights/search와 마찬가지로 {schedule_id}보다 먼저 등록해야 한다 —
+# "price-calendar"라는 문자열이 int 경로 파라미터로 잡혀 422가 나는 것을 막기 위함.
+@router.get("/flights/price-calendar")
+def price_calendar(
+    origin: str = Query(...),
+    destination: str = Query(...),
+    start: str = Query(...),
+    end: str = Query(...),
+):
+    origin = origin.strip().upper()
+    destination = destination.strip().upper()
+
+    if not origin or not destination:
+        raise _invalid_input("origin and destination are required")
+    if origin == destination:
+        raise _invalid_input("origin and destination must differ")
+
+    start_day = _parse_date(start, "start")
+    end_day = _parse_date(end, "end")
+    if end_day < start_day:
+        raise _invalid_input("end must not be before start")
+    if (end_day - start_day).days > 92:
+        raise _invalid_input("date range must not exceed 92 days")
+
+    with engine.connect() as conn:
+        rows = conn.execute(
+            text(
+                """
+                SELECT DATE(fs.depart_at) AS d, MIN(fr.amount) AS min_price
+                FROM flight_schedules fs
+                JOIN flights f ON f.id = fs.flight_id
+                JOIN fares fr ON fr.schedule_id = fs.id
+                WHERE f.origin = :origin
+                  AND f.destination = :destination
+                  AND fs.depart_at >= :start
+                  AND fs.depart_at < :end_exclusive
+                GROUP BY d
+                ORDER BY d
+                """
+            ),
+            {
+                "origin": origin,
+                "destination": destination,
+                "start": start_day,
+                "end_exclusive": end_day + timedelta(days=1),
+            },
+        ).mappings().all()
+
+    return {
+        "origin": origin,
+        "destination": destination,
+        "prices": {row["d"].isoformat(): row["min_price"] for row in rows},
+    }
+
+
 # /flights/search 뒤에 등록해야 한다 — 먼저 등록되면 "search"가 {schedule_id}로 잡혀버린다.
 # id는 flights.id가 아니라 flight_schedules.id다: 잔여 좌석은 스케줄(특정 날짜 운항편) 단위로만
 # 의미가 있고, search 응답의 schedule_id를 그대로 이어받아 상세를 열람하는 흐름이기 때문.

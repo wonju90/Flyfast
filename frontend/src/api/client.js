@@ -125,6 +125,9 @@ export const api = {
 
   flightDetail: (scheduleId) => request(`/api/v1/flights/${scheduleId}`),
 
+  priceCalendar: ({ origin, destination, start, end }) =>
+    request(`/api/v1/flights/price-calendar?${new URLSearchParams({ origin, destination, start, end })}`),
+
   holdSeat: (scheduleId, seatNo) =>
     request(`/api/v1/schedules/${scheduleId}/seats/hold`, {
       method: "POST",
