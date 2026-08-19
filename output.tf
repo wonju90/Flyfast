@@ -21,9 +21,7 @@ output "private_ips" {
     api_a     = aws_instance.api_a.private_ip
     api_c     = aws_instance.api_c.private_ip
     redis_a   = aws_instance.redis_a.private_ip
-    redis_c   = aws_instance.redis_c.private_ip
     mysql_a   = aws_instance.mysql_a.private_ip
-    mysql_c   = aws_instance.mysql_c.private_ip
   }
 }
 

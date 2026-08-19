@@ -101,7 +101,7 @@ resource "aws_instance" "api_c" {
 }
 
 # ---------------------------------------------------------------------------
-# Redis (backend01 / backend02)
+# Redis (backend01 전용 — 단일 인스턴스, AZ 이중화 없음)
 # ---------------------------------------------------------------------------
 resource "aws_instance" "redis_a" {
   ami                    = data.aws_ami.amazon_linux_2023.id
@@ -116,21 +116,8 @@ resource "aws_instance" "redis_a" {
   }
 }
 
-resource "aws_instance" "redis_c" {
-  ami                    = data.aws_ami.amazon_linux_2023.id
-  instance_type          = "t3.small"
-  subnet_id              = aws_subnet.this["backend02"].id
-  private_ip             = "172.16.21.100"
-  key_name               = aws_key_pair.this.key_name
-  vpc_security_group_ids = [aws_vpc.this.default_security_group_id, aws_security_group.redis.id]
-
-  tags = {
-    Name = "${var.prefix}-redis-c"
-  }
-}
-
 # ---------------------------------------------------------------------------
-# MySQL (db01 / db02)
+# MySQL (db01 전용 — 단일 인스턴스, AZ 이중화 없음)
 # ---------------------------------------------------------------------------
 resource "aws_instance" "mysql_a" {
   ami                    = data.aws_ami.amazon_linux_2023.id
@@ -142,18 +129,5 @@ resource "aws_instance" "mysql_a" {
 
   tags = {
     Name = "${var.prefix}-mysql-a"
-  }
-}
-
-resource "aws_instance" "mysql_c" {
-  ami                    = data.aws_ami.amazon_linux_2023.id
-  instance_type          = "t3.small"
-  subnet_id              = aws_subnet.this["db02"].id
-  private_ip             = "172.16.31.10"
-  key_name               = aws_key_pair.this.key_name
-  vpc_security_group_ids = [aws_vpc.this.default_security_group_id, aws_security_group.db.id]
-
-  tags = {
-    Name = "${var.prefix}-mysql-c"
   }
 }
