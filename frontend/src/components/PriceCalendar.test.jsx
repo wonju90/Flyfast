@@ -75,6 +75,27 @@ describe("PriceCalendar", () => {
     expect(onSelect).toHaveBeenCalledWith("2026-08-25");
   });
 
+  it("shows a no-data hint instead of a silently empty grid when the route has no fares", async () => {
+    api.priceCalendar.mockResolvedValue({ prices: {} });
+
+    render(
+      <PriceCalendar value="" minDate="2026-08-20" origin="SIN" destination="JFK" onSelect={vi.fn()} />
+    );
+
+    expect(await screen.findByText(/운항 데이터가 없습니다/)).toBeInTheDocument();
+  });
+
+  it("does not show the no-data hint while a route with real fares is still loading", () => {
+    api.priceCalendar.mockReturnValue(new Promise(() => {})); // never resolves
+
+    render(
+      <PriceCalendar value="" minDate="2026-08-20" origin="ICN" destination="NRT" onSelect={vi.fn()} />
+    );
+
+    expect(screen.queryByText(/운항 데이터가 없습니다/)).not.toBeInTheDocument();
+    expect(screen.getByText("요금 불러오는 중...")).toBeInTheDocument();
+  });
+
   it("navigates months independently and refetches prices for the new range", async () => {
     api.priceCalendar.mockResolvedValue({ prices: {} });
 

@@ -110,6 +110,11 @@ export default function PriceCalendar({ value, minDate, origin, destination, onS
         <p className="calendar-hint">출발지·도착지를 선택하면 날짜별 요금이 표시됩니다.</p>
       )}
       {hasRoute && loading && <p className="calendar-hint">요금 불러오는 중...</p>}
+      {hasRoute && !loading && Object.keys(prices).length === 0 && (
+        <p className="calendar-hint">
+          이 노선은 해당 기간에 운항 데이터가 없습니다. 다른 노선이나 달을 확인해보세요.
+        </p>
+      )}
     </div>
   );
 }
