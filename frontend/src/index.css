@@ -328,6 +328,47 @@ select {
   margin-bottom: 16px;
 }
 
+.route-hero {
+  background: linear-gradient(135deg, var(--navy) 0%, #234876 60%, var(--accent) 100%);
+  border-radius: 12px;
+  padding: 20px 24px;
+  color: white;
+  margin-bottom: 20px;
+}
+
+.route-hero-title {
+  margin: 0 0 6px;
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.route-hero-flightno {
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 600;
+  margin-right: 8px;
+}
+
+.route-hero-meta {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.9rem;
+}
+
+.route-hero .trip-progress-badge {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  margin-bottom: 10px;
+}
+
+.section-title {
+  color: var(--navy);
+  font-size: 1.1rem;
+  margin: 0 0 12px;
+  padding-bottom: 6px;
+  border-bottom: 2px solid var(--accent);
+  display: inline-block;
+}
+
 .flight-list {
   margin-bottom: 24px;
 }
@@ -403,8 +444,18 @@ select {
 }
 
 .flight-no {
-  color: var(--accent);
-  font-weight: bold;
+  align-self: flex-start;
+  background: var(--accent);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.flight-card-route {
+  color: var(--navy);
+  font-size: 1.02rem;
 }
 
 .flight-card-time {
@@ -426,11 +477,6 @@ select {
   padding: 2px 6px;
   font-size: 0.75rem;
   margin-left: 6px;
-}
-
-.flight-detail-time {
-  color: #555;
-  margin-bottom: 20px;
 }
 
 .seat-map {
@@ -647,6 +693,14 @@ select {
 
   .api-server-ip {
     font-size: 1.5rem;
+  }
+
+  .route-hero {
+    padding: 16px 18px;
+  }
+
+  .route-hero-title {
+    font-size: 1.1rem;
   }
 
   .search-row {

@@ -227,18 +227,22 @@ export default function FlightDetailPage() {
 
   return (
     <div className="page">
-      {returnScheduleId && (
-        <span className="trip-progress-badge">왕복 1/2 · 가는 편</span>
-      )}
-      {tripLeg === "return" && (
-        <span className="trip-progress-badge">왕복 2/2 · 오는 편</span>
-      )}
-      <h1>
-        {flight.flight_no} · {flight.origin} → {flight.destination}
-      </h1>
-      <p className="flight-detail-time">
-        {formatTime(flight.depart_at)} ~ {formatTime(flight.arrival_at)} · 잔여 {flight.remaining_seats}석
-      </p>
+      <section className="route-hero">
+        {returnScheduleId && (
+          <span className="trip-progress-badge">왕복 1/2 · 가는 편</span>
+        )}
+        {tripLeg === "return" && (
+          <span className="trip-progress-badge">왕복 2/2 · 오는 편</span>
+        )}
+        <p className="route-hero-title">
+          <span className="route-hero-flightno">{flight.flight_no}</span>
+          {flight.origin} <span aria-hidden="true">→</span> {flight.destination}
+        </p>
+        <p className="route-hero-meta">
+          {formatTime(flight.depart_at)} ~ {formatTime(flight.arrival_at)} · 잔여{" "}
+          {flight.remaining_seats}석
+        </p>
+      </section>
 
       {error && <p className="error-text">{error}</p>}
 

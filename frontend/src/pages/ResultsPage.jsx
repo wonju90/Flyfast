@@ -18,8 +18,8 @@ function FlightCard({ f, mode, isSelected, onSelect }) {
     <>
       <div className="flight-card-main">
         <span className="flight-no">{f.flight_no}</span>
-        <span>
-          {f.origin} → {f.destination}
+        <span className="flight-card-route">
+          {f.origin} <span aria-hidden="true">→</span> {f.destination}
         </span>
       </div>
       <div className="flight-card-time">
@@ -60,7 +60,7 @@ function FlightList({ title, flights, mode, selectedId, onSelect }) {
 
   return (
     <section className="flight-list">
-      <h2>{title}</h2>
+      <h2 className="section-title">{title}</h2>
       {flights.length === 0 ? (
         <p className="empty-state">해당 조건의 항공편이 없습니다.</p>
       ) : (
@@ -107,12 +107,17 @@ export default function ResultsPage() {
 
   return (
     <div className="page">
-      <h1>검색 결과</h1>
-      <p className="search-summary">
-        {searchParams.get("origin")} → {searchParams.get("destination")} · {searchParams.get("depart")}
-        {isRoundTrip ? ` (귀국 ${searchParams.get("return")})` : ""} · 성인{" "}
-        {searchParams.get("adults")}명
-      </p>
+      <section className="route-hero">
+        <p className="route-hero-title">
+          {searchParams.get("origin")} <span aria-hidden="true">→</span>{" "}
+          {searchParams.get("destination")}
+        </p>
+        <p className="route-hero-meta">
+          {searchParams.get("depart")}
+          {isRoundTrip ? ` · 귀국 ${searchParams.get("return")}` : ""} · 성인{" "}
+          {searchParams.get("adults")}명
+        </p>
+      </section>
 
       {isRoundTrip && (
         <p className="hint-text">
