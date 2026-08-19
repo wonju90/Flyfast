@@ -41,10 +41,10 @@
 - **`terraform apply` 완료, AWS에 실제 리소스 프로비저닝됨** (`vpc_id: vpc-01016078a648a82a5`, 2026-08-18 재적용 기준). Bastion-a/c SSH 접속 확인 완료
   - bastion-a 퍼블릭 IP: `3.35.175.77`, bastion-c 퍼블릭 IP: `43.200.8.210`
   - 이전 destroy → 재apply로 VPC ID/Bastion IP가 바뀌었으므로, 앞으로 이 값들이 다시 바뀌면 이 문서도 함께 갱신할 것
-  - 나머지 8대(web-a/c, api-a/c, redis-a/c, mysql-a/c)는 표에 명시된 프라이빗 IP 그대로 기동 중이며, Bastion을 경유한 SSH(ProxyJump) 접속까지 전부 확인 완료
-- **역할 분담 확정**: VPC/서브넷/SG/Bastion + web·api·redis·mysql 고정 인스턴스 10대는 **Terraform**이 계속 관리. **Auto Scaling Group(web 티어, api 티어)은 Terraform에 추가하지 않고 AWS 콘솔에서 직접 생성**하기로 결정 (아래 3-1 다이어그램 반영)
+  - **2026-08-18: redis-c, mysql-c 인스턴스 종료** — Redis/MySQL이 AZ마다 독립적으로 떠 있으면 좌석 락/예약 데이터가 AZ별로 갈라지는 split-brain 위험이 있어, redis-a·mysql-a 단일 인스턴스 체제로 단순화하기로 결정 (근거: 아래 3-2절, 4절 참고). 현재 총 8대(bastion-a/c, web-a/c, api-a/c, redis-a, mysql-a) 운영 중
+- **역할 분담 확정**: VPC/서브넷/SG/Bastion + web·api·redis·mysql 고정 인스턴스는 **Terraform**이 계속 관리. **Auto Scaling Group(web 티어, api 티어)은 Terraform에 추가하지 않고 AWS 콘솔에서 직접 생성**하기로 결정 (아래 3-1 다이어그램 반영)
   - Terraform이 만든 `web-a/web-c`, `api-a/api-c` 고정 인스턴스는 **삭제하지 않고 참고·테스트용으로 유지**. 콘솔에서 만드는 ASG는 별도의 Launch Template으로 새 인스턴스를 띄우므로 이름/태그가 겹치지 않도록 주의 (예: ASG 인스턴스는 `Flyfast-web-asg-*` 형태로 구분)
-  - `redis-a/redis-c`는 캐시 서버 특성상 오토스케일링 대상이 아니므로 **Terraform 고정 인스턴스로만 유지**, ASG에 포함하지 않음
+  - `redis-a`(단일)는 캐시 서버 특성상 오토스케일링 대상이 아니므로 **Terraform 고정 인스턴스로만 유지**, ASG에 포함하지 않음
   - 콘솔에서 만드는 ASG 인스턴스는 Terraform이 만든 기존 `Flyfast-web-sg` / `Flyfast-api-sg`를 그대로 재사용 가능 (현재 인바운드가 `0.0.0.0/0`로 열려 있어 추가 SG 없이도 동작)
 
 ### 3-1. 네트워크 구성도 (VPC: 172.16.0.0/16, prefix: `Flyfast`)
@@ -61,11 +61,13 @@
         |                                          |
  [backend01 172.16.20.0/24]                [backend02 172.16.21.0/24]
  - api-a     172.16.20.10  (FastAPI)       - api-c     172.16.21.10  (FastAPI)
- - redis-a   172.16.20.100 (Valkey)        - redis-c   172.16.21.100 (Valkey)
+ - redis-a   172.16.20.100 (Valkey)        (redis 없음 — api-c도 redis-a를 원격 참조)
         |                                          |
  [db01      172.16.30.0/24]                [db02      172.16.31.0/24]
- - mysql-a   172.16.30.10                  - mysql-c   172.16.31.10
+ - mysql-a   172.16.30.10                  (mysql 없음 — db02는 서브넷만 존재)
 ```
+
+> **2026-08-18 변경**: redis-c, mysql-c 인스턴스를 종료했다. Redis/MySQL은 AZ마다 독립 인스턴스를 두면 좌석 락·예약 데이터가 갈라지는 위험이 있어(자세한 내용은 4절), 각각 단일 인스턴스로 단순화했다. backend02/db02 서브넷 자체는 향후 복제(Replica)나 재이중화를 대비해 그대로 남겨둔다.
 
 > ALB가 없는 현재 단계에서는 web-sg가 인터넷에서 직접 80/443을 수신합니다. ALB 도입 시 web-sg 인바운드를 ALB 전용 SG로 제한할 예정입니다.
 
@@ -78,13 +80,11 @@
 | front01 | web-a | 172.16.10.10 | t3.small | Nginx | React 빌드 결과물 서빙 + `/api` 프록시 |
 | front02 | web-c | 172.16.11.10 | t3.small | Nginx | React 빌드 결과물 서빙 + `/api` 프록시 |
 | backend01 | api-a | 172.16.20.10 | t3.small | Python3, FastAPI, Uvicorn | |
-| backend01 | redis-a | 172.16.20.100 | t3.small | Valkey | AZ-a 전용 캐시 |
-| backend02 | api-c | 172.16.21.10 | t3.small | Python3, FastAPI, Uvicorn | |
-| backend02 | redis-c | 172.16.21.100 | t3.small | Valkey | AZ-c 전용 캐시 |
-| db01 | mysql-a | 172.16.30.10 | t3.small | MariaDB Server | |
-| db02 | mysql-c | 172.16.31.10 | t3.small | MariaDB Server | Primary/Replica 여부 미정 (11절 참고) |
+| backend01 | redis-a | 172.16.20.100 | t3.small | Valkey | **단일 인스턴스**, api-a/api-c 공통 사용 |
+| backend02 | api-c | 172.16.21.10 | t3.small | Python3, FastAPI, Uvicorn | redis-a를 원격으로 참조 |
+| db01 | mysql-a | 172.16.30.10 | t3.small | MariaDB Server | **단일 인스턴스**, Primary/Replica 없음 |
 
-> **변경점**: 원래 계획은 Valkey를 backend01에만 두고 api-c가 원격으로 참조하는 구조였으나, 현재 Terraform은 AZ마다 Valkey를 1대씩(redis-a/redis-c) 독립 배치합니다. 캐시를 AZ별로 분리 운영할지, 원래 계획처럼 단일 인스턴스를 공유할지는 11절 미정 사항으로 이관합니다.
+> **결정 (2026-08-18)**: Valkey/MySQL을 AZ마다 독립 배치하면 ALB가 요청을 web-a/web-c 아무 쪽으로나 분산시킬 때 좌석 락과 예약 데이터가 AZ별로 갈라지는 split-brain 위험이 있다 (좌석 중복 판매 가능). 이를 막기 위해 원래 계획대로 **Valkey/MySQL을 각각 단일 인스턴스로 운영**하고, api-a/api-c 양쪽 모두 이 단일 인스턴스를 원격 참조한다. AZ 장애 격리는 이 두 컴포넌트에 대해서는 포기하는 대신, 나중에 MySQL Primary-Replica(자가관리 binlog 복제) 등으로 재이중화할 수 있다 (11절 참고).
 
 ### 3-3. 보안그룹 (Terraform 기준 — 현재는 개발/구축 단계용 완화 규칙)
 
@@ -303,7 +303,7 @@ project-root/
 - [x] 프로젝트 최종 네이밍 → `Flyfast`로 확정 (인프라 prefix 기준, 변경 시 재논의)
 - [ ] 결제 PG 연동 여부 (흉내만 낼지, 테스트용 PG 붙일지)
 - [ ] 경유(다구간) 항공편 지원 여부
-- [ ] MySQL Replica(db02) 실제 구성 여부
-- [ ] **Valkey(redis-a/redis-c) AZ별 분리 운영 vs 단일 인스턴스 공유** — 현재 Terraform은 AZ별 분리 배치, 원래 계획은 단일 공유 (3-2절 참고)
+- [x] MySQL Replica(db02) 실제 구성 여부 → **당장은 미구성**. mysql-a 단일 인스턴스로 운영, db02는 서브넷만 남겨두고 추후 Primary-Replica 필요해지면 그때 구성 (3-2절 참고)
+- [x] Valkey(redis-a/redis-c) AZ별 분리 운영 vs 단일 인스턴스 공유 → **단일 공유로 확정**. redis-c 종료, api-a/api-c 모두 redis-a 원격 참조 (3-2절 참고)
 - [x] ALB/ASG 도입 방식 → **Terraform에 추가하지 않고 AWS 콘솔에서 직접 생성**하기로 확정. web/api ASG용 Launch Template·Target Tracking 정책 설계는 별도 진행 필요 (3-0절 참고)
 - [ ] 프론트엔드 상태관리 라이브러리 (Redux / Zustand / Context API 등)

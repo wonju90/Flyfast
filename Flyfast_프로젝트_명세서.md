@@ -13,8 +13,6 @@
 | AWS 배포 | http://flyfast-web-alb-1629813771.ap-northeast-2.elb.amazonaws.com (별도 계정 `738815760058` 기준, 6.3절 참고) |
 | 개발 환경 | React + Vite · FastAPI · MySQL 8 · Redis |
 
-> **문서 역할 안내**: 이 문서는 팀 공식 프로젝트 명세서다. 우리 계정(`379937169195`)에서 실제로 진행 중인 인프라의 작업 로그/체크리스트는 `PROJECT_PLAN.md`를 참고한다 — 두 문서가 서로 다른 AWS 계정을 설명할 수 있으니 계정 번호를 항상 확인할 것.
-
 ---
 
 ## 1. 프로젝트 개요
@@ -38,7 +36,7 @@
 |---|---|
 | 항공권 검색 폼, 노선 교환, 날짜·인원 선택 | 실시간 항공사 운임 API 연동 |
 | 직항 필터, 샘플 항공편 목록, 선택 상태 | 실제 결제·발권·환불 처리 (결제는 Mock 처리로 대체) |
-| AWS VPC, EC2 10대, NAT 2대, ALB | 회원 인증 및 운영자 백오피스 |
+| AWS VPC, EC2 8대, NAT 2대, ALB | 회원 인증 및 운영자 백오피스 |
 | 반응형 웹·OG 이미지·배포 검증 | RDS/ElastiCache 관리형 서비스 전환 |
 
 ### 1.4 팀 구성 및 역할
@@ -57,9 +55,9 @@
 
 <div class="diagram">
 
-![Flyfast 인프라 구성도](airplane-project-v1.png)
+![Flyfast 인프라 구성도](airplane-project-v2.png)
 
-<p class="diagram-caption">[그림 1] Flyfast 인프라 구성도 — 2개 가용영역 × 4계층 서브넷, Web·Backend 계층은 Auto Scaling Group으로 이중화</p>
+<p class="diagram-caption">[그림 1] Flyfast 인프라 구성도 — 2개 가용영역 × 4계층 서브넷. redis·mysql은 split-brain 방지를 위해 단일 인스턴스로 운영 (backend02엔 api만, db02는 서브넷만 존재)</p>
 
 </div>
 
@@ -67,10 +65,10 @@
 |---|---|---|---|
 | 공개 | Flyfast-public01 / 02 | Public | bastion, NAT Gateway, ALB |
 | 프론트 | Flyfast-front01 / 02 | Private | web-a, web-c |
-| 애플리케이션 | Flyfast-backend01 / 02 | Private | api-a/c, redis-a/c |
-| 데이터 | Flyfast-db01 / 02 | Private | mysql-a, mysql-c |
+| 애플리케이션 | Flyfast-backend01 / 02 | Private | api-a, api-c, **redis-a(단일, 양쪽 api가 공유)** |
+| 데이터 | Flyfast-db01 / 02 | Private | **mysql-a(단일)**, db02는 서브넷만 존재 |
 
-**설계 의도**: ap-northeast-2a와 2c에 동일 계층을 대칭 배치하고, AZ별 NAT Gateway와 라우팅 테이블을 분리했다. 한 AZ의 장애가 다른 AZ의 아웃바운드 경로와 웹 서비스에 영향을 주지 않도록 구성했다.
+**설계 의도**: ap-northeast-2a와 2c에 동일 계층을 대칭 배치하고, AZ별 NAT Gateway와 라우팅 테이블을 분리했다. 한 AZ의 장애가 다른 AZ의 아웃바운드 경로와 웹 서비스에 영향을 주지 않도록 구성했다 (단, redis·mysql은 위 사유로 단일 인스턴스 운영 — 이 두 컴포넌트에 한해 AZ 장애 격리는 적용되지 않는다).
 
 ### 2.2 트래픽 흐름
 
@@ -244,18 +242,114 @@
 
 ### 4.1 예약 도메인 ERD (설계안)
 
-```
-users (PK id, email UNIQUE, name, password_hash)
-  └─1:N─ bookings (PK id, FK user_id, booking_no UNIQUE, status)
-              ├─1:N─ passengers (PK id, FK booking_id, name, seat_no)
-              └─1:N─ payments (PK id, FK booking_id, amount, status)
+<div class="diagram">
 
-flights (PK id, flight_no, origin, destination)
-  └─1:N─ flight_schedules (PK id, FK flight_id, depart_at, arrival_at)
-              └─1:N─ seats (PK id, FK schedule_id, seat_no, status)
-```
+<svg viewBox="0 0 900 660" xmlns="http://www.w3.org/2000/svg" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="erdArrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#555"/>
+    </marker>
+  </defs>
 
-> [그림 3] Flyfast 예약 데이터 모델 — 백엔드 구현 단계에서 적용 예정
+  <text x="10" y="24" font-size="16" font-weight="bold" fill="#1B2A4A">항공권 예매 시스템 ERD</text>
+  <text x="10" y="42" font-size="10.5" fill="#777">PK = 기본 키 · FK = 외래 키 · UQ = 고유 제약</text>
+
+  <!-- flights -->
+  <rect x="40" y="70" width="230" height="110" rx="6" fill="white" stroke="#ccc"/>
+  <rect x="40" y="70" width="230" height="26" fill="#1B2A4A"/>
+  <text x="52" y="88" font-size="12" font-weight="bold" fill="white">FLIGHTS · 항공편</text>
+  <text x="52" y="112" font-size="10.5" font-weight="bold" fill="#0973B7">PK</text><text x="86" y="112" font-size="10.5" fill="#333">id BIGINT</text>
+  <text x="52" y="132" font-size="10.5" font-weight="bold" fill="#777">UQ</text><text x="86" y="132" font-size="10.5" fill="#333">flight_no VARCHAR(10)</text>
+  <text x="52" y="152" font-size="10.5" fill="#333">origin VARCHAR(10)</text>
+  <text x="52" y="170" font-size="10.5" fill="#333">destination VARCHAR(10)</text>
+
+  <!-- flight_schedules -->
+  <rect x="340" y="70" width="250" height="128" rx="6" fill="white" stroke="#ccc"/>
+  <rect x="340" y="70" width="250" height="26" fill="#1B2A4A"/>
+  <text x="352" y="88" font-size="12" font-weight="bold" fill="white">FLIGHT_SCHEDULES · 운항 일정</text>
+  <text x="352" y="112" font-size="10.5" font-weight="bold" fill="#0973B7">PK</text><text x="386" y="112" font-size="10.5" fill="#333">id BIGINT</text>
+  <text x="352" y="132" font-size="10.5" font-weight="bold" fill="#2E7D32">FK</text><text x="386" y="132" font-size="10.5" fill="#333">flight_id BIGINT</text>
+  <text x="352" y="152" font-size="10.5" fill="#333">depart_at DATETIME</text>
+  <text x="352" y="170" font-size="10.5" fill="#333">arrival_at DATETIME</text>
+  <text x="352" y="188" font-size="9.5" fill="#888">인덱스 (flight_id, depart_at)</text>
+
+  <!-- seats -->
+  <rect x="660" y="70" width="210" height="148" rx="6" fill="white" stroke="#ccc"/>
+  <rect x="660" y="70" width="210" height="26" fill="#1B2A4A"/>
+  <text x="672" y="88" font-size="12" font-weight="bold" fill="white">SEATS · 좌석</text>
+  <text x="672" y="112" font-size="10.5" font-weight="bold" fill="#0973B7">PK</text><text x="706" y="112" font-size="10.5" fill="#333">id BIGINT</text>
+  <text x="672" y="132" font-size="10.5" font-weight="bold" fill="#2E7D32">FK</text><text x="706" y="132" font-size="10.5" fill="#333">schedule_id BIGINT</text>
+  <text x="672" y="152" font-size="10.5" fill="#333">seat_no VARCHAR(10)</text>
+  <text x="672" y="170" font-size="10.5" fill="#333">seat_class VARCHAR(10)</text>
+  <text x="672" y="188" font-size="10.5" fill="#333">status VARCHAR(15)</text>
+  <text x="672" y="206" font-size="9.5" fill="#888">UQ (schedule_id, seat_no)</text>
+
+  <!-- users -->
+  <rect x="40" y="330" width="210" height="110" rx="6" fill="white" stroke="#ccc"/>
+  <rect x="40" y="330" width="210" height="26" fill="#1B2A4A"/>
+  <text x="52" y="348" font-size="12" font-weight="bold" fill="white">USERS · 회원</text>
+  <text x="52" y="372" font-size="10.5" font-weight="bold" fill="#0973B7">PK</text><text x="86" y="372" font-size="10.5" fill="#333">id BIGINT</text>
+  <text x="52" y="392" font-size="10.5" font-weight="bold" fill="#777">UQ</text><text x="86" y="392" font-size="10.5" fill="#333">email VARCHAR(100)</text>
+  <text x="52" y="412" font-size="10.5" fill="#333">password_hash VARCHAR(60)</text>
+  <text x="52" y="430" font-size="10.5" fill="#333">name VARCHAR(50)</text>
+
+  <!-- bookings -->
+  <rect x="320" y="330" width="210" height="140" rx="6" fill="white" stroke="#ccc"/>
+  <rect x="320" y="330" width="210" height="26" fill="#1B2A4A"/>
+  <text x="332" y="348" font-size="12" font-weight="bold" fill="white">BOOKINGS · 예약</text>
+  <text x="332" y="372" font-size="10.5" font-weight="bold" fill="#0973B7">PK</text><text x="366" y="372" font-size="10.5" fill="#333">id BIGINT</text>
+  <text x="332" y="392" font-size="10.5" font-weight="bold" fill="#777">UQ</text><text x="366" y="392" font-size="10.5" fill="#333">booking_no VARCHAR(20)</text>
+  <text x="332" y="412" font-size="10.5" font-weight="bold" fill="#2E7D32">FK</text><text x="366" y="412" font-size="10.5" fill="#333">schedule_id BIGINT</text>
+  <text x="332" y="432" font-size="10.5" font-weight="bold" fill="#2E7D32">FK</text><text x="366" y="432" font-size="10.5" fill="#333">user_id BIGINT</text>
+  <text x="332" y="452" font-size="10.5" fill="#333">status VARCHAR(15)</text>
+
+  <!-- passengers -->
+  <rect x="600" y="330" width="230" height="128" rx="6" fill="white" stroke="#ccc"/>
+  <rect x="600" y="330" width="230" height="26" fill="#1B2A4A"/>
+  <text x="612" y="348" font-size="12" font-weight="bold" fill="white">PASSENGERS · 탑승객</text>
+  <text x="612" y="372" font-size="10.5" font-weight="bold" fill="#0973B7">PK</text><text x="646" y="372" font-size="10.5" fill="#333">id BIGINT</text>
+  <text x="612" y="392" font-size="10.5" font-weight="bold" fill="#2E7D32">FK</text><text x="646" y="392" font-size="10.5" fill="#333">booking_id BIGINT</text>
+  <text x="612" y="412" font-size="10.5" font-weight="bold" fill="#555">FK·UQ</text><text x="666" y="412" font-size="10.5" fill="#333">seat_id BIGINT</text>
+  <text x="612" y="432" font-size="10.5" fill="#333">name VARCHAR(30)</text>
+  <text x="612" y="450" font-size="9.5" fill="#888">UQ(seat_id) — 좌석 중복 배정 차단</text>
+
+  <!-- payments -->
+  <rect x="320" y="520" width="230" height="110" rx="6" fill="white" stroke="#ccc"/>
+  <rect x="320" y="520" width="230" height="26" fill="#1B2A4A"/>
+  <text x="332" y="538" font-size="12" font-weight="bold" fill="white">PAYMENTS · 결제(Mock)</text>
+  <text x="332" y="562" font-size="10.5" font-weight="bold" fill="#0973B7">PK</text><text x="366" y="562" font-size="10.5" fill="#333">id BIGINT</text>
+  <text x="332" y="582" font-size="10.5" font-weight="bold" fill="#555">FK·UQ</text><text x="386" y="582" font-size="10.5" fill="#333">booking_id BIGINT</text>
+  <text x="332" y="602" font-size="10.5" fill="#333">amount INT</text>
+  <text x="332" y="620" font-size="10.5" fill="#333">status VARCHAR(15)</text>
+
+  <!-- relations -->
+  <line x1="270" y1="120" x2="338" y2="120" stroke="#555" stroke-width="1.4" marker-end="url(#erdArrow)"/>
+  <text x="304" y="112" font-size="10" text-anchor="middle" fill="#555">1:N</text>
+
+  <line x1="590" y1="120" x2="658" y2="120" stroke="#555" stroke-width="1.4" marker-end="url(#erdArrow)"/>
+  <text x="624" y="112" font-size="10" text-anchor="middle" fill="#555">1:N</text>
+
+  <line x1="420" y1="198" x2="420" y2="328" stroke="#555" stroke-width="1.4" marker-end="url(#erdArrow)"/>
+  <text x="435" y="266" font-size="10" fill="#555">1:N</text>
+
+  <line x1="700" y1="218" x2="700" y2="328" stroke="#555" stroke-width="1.4" marker-end="url(#erdArrow)"/>
+  <text x="715" y="276" font-size="10" fill="#555">1:1</text>
+
+  <line x1="250" y1="380" x2="318" y2="380" stroke="#555" stroke-width="1.4" marker-end="url(#erdArrow)"/>
+  <text x="284" y="372" font-size="10" text-anchor="middle" fill="#555">1:N</text>
+
+  <line x1="530" y1="380" x2="598" y2="380" stroke="#555" stroke-width="1.4" marker-end="url(#erdArrow)"/>
+  <text x="564" y="372" font-size="10" text-anchor="middle" fill="#555">1:N</text>
+
+  <line x1="425" y1="470" x2="425" y2="518" stroke="#555" stroke-width="1.4" marker-end="url(#erdArrow)"/>
+  <text x="440" y="497" font-size="10" fill="#555">1:1</text>
+</svg>
+
+<p class="diagram-caption">[그림 3] Flyfast 예약 데이터 모델 — FastAPI 백엔드에 실제 구현·배포됨</p>
+
+</div>
+
+> 위 그림에는 표시하지 않았지만, FLIGHT_SCHEDULES에서 1:N으로 연결되는 **FARES** 테이블(운임)이 추가로 존재한다. 상세는 4.2절 참고.
 
 ### 4.2 주요 제약 조건 및 인덱스
 
@@ -264,10 +358,11 @@ flights (PK id, flight_no, origin, destination)
 | users | UNIQUE(email) | 로그인 계정 중복 방지 |
 | flights | UNIQUE(flight_no) | 항공편 코드 중복 방지 |
 | flight_schedules | INDEX(flight_id, depart_at) | 노선·날짜 검색 성능 확보 |
-| bookings | UNIQUE(booking_no) | 예약번호 중복 발급 방지 |
-| passengers | UNIQUE(booking_id, seat_no) | 한 예약 내 좌석 중복 방지 |
+| bookings | UNIQUE(booking_no), FK(schedule_id → flight_schedules.id) | 예약번호 중복 발급 방지 + 예약-운항편 연결 |
+| passengers | UNIQUE(seat_id), FK(seat_id → seats.id) | 좌석 1개당 탑승객 1명 강제 — 중복 좌석 판매를 DB 레벨에서 차단 |
 | seats | UNIQUE(schedule_id, seat_no) | 동일 운항편 좌석 중복 판매 방어 |
 | payments | UNIQUE(booking_id) | 한 예약에 유효 결제 1건 대응 |
+| fares | UNIQUE(schedule_id, seat_class), FK(schedule_id → flight_schedules.id) | 운항편·좌석 클래스별 운임 1건만 유지, 결제 금액을 서버가 이 표 기준으로 직접 계산(클라이언트 입력 금액 미신뢰) |
 
 ### 4.3 Redis 키 설계
 
@@ -276,9 +371,9 @@ flights (PK id, flight_no, origin, destination)
 | 좌석 선점 | `seat:hold:{scheduleId}:{seatNo}` | 10분 | SET NX EX로 동시 선택 1건만 허용 |
 | 검색 캐시 | `search:{origin}:{dest}:{date}` | 5분 | 동일 조건 반복 조회 응답 캐시 |
 | Refresh Token | `auth:refresh:{userId}` | 14일 | 재로그인 시 기존 세션 교체 |
-| 운임 캐시 | `fare:{scheduleId}:{class}` | 1분 | 외부 운임 API 호출량 제한 |
+| 운임 캐시 | `fare:{scheduleId}:{class}` | 1분 | fares 테이블 조회 결과 캐시 (실시간 항공사 운임 API 연동은 1.3절 범위 외라, 자체 운임표를 대신 캐싱) |
 
-**현재 상태**: Terraform은 Redis·MySQL 역할의 EC2와 내부 통신 경로를 생성했다. 데이터베이스 스키마와 캐시 키는 설계 단계이며, 실제 서비스 설치·마이그레이션은 백엔드 구현 시 진행한다.
+**현재 상태**: 위 테이블·제약조건·Redis 키 전부 실제로 구현되어 mysql-a/redis-a에 배포됐고, FastAPI 백엔드와 React 프론트엔드가 로컬 환경에서 전 구간(검색→선점→예약→결제→취소) 실동작을 확인했다. 다음 단계는 이 코드를 api-a/api-c, web-a/web-c에 실제 배포하는 것이다.
 
 ---
 
@@ -344,7 +439,7 @@ GET /api/v1/flights/search?origin=ICN&destination=NRT&depart=2026-09-04&return=2
 |---|---|---|
 | Terraform 구문 | terraform validate | 성공 |
 | 구성 일치 | terraform plan | No changes |
-| EC2 10대 | AWS 상태 및 시스템 검사 | running / ok |
+| EC2 8대 | AWS 상태 및 시스템 검사 | running / ok |
 | ALB 대상 | Web-a, Web-c Target Health | healthy |
 | 웹 응답 | ALB URL HTTP 요청 | 200 / title=Flyfast |
 | Bastion SSH | 생성 키로 Amazon Linux 접속 | 성공 |
@@ -354,16 +449,15 @@ GET /api/v1/flights/search?origin=ICN&destination=NRT&depart=2026-09-04&return=2
 
 | 리소스 | 수량 / 상태 |
 |---|---|
-| Terraform 관리 리소스 | 50개 |
-| EC2 | 10대 · 2개 AZ |
+| AWS 계정 | `379937169195` |
+| Terraform 관리 리소스 | 41개 |
+| EC2 | 8대 · bastion/web/api는 2개 AZ, redis/mysql은 단일 인스턴스 (running) |
 | NAT Gateway | 2대 · AZ별 독립 |
-| Application Load Balancer | 1대 · Web 대상 2대 |
-| Bastion Public IP | 3.36.60.37 / 52.78.69.247 |
-| VPC | vpc-0867d5f780dde8edf |
+| Application Load Balancer | 미생성 (`ALB_ASG_GUIDE.md` 진행 예정) |
+| Bastion Public IP | 13.125.14.131 / 3.36.74.59 (Elastic IP 미사용 — 재시작마다 변경) |
+| VPC | vpc-01016078a648a82a5 |
 
-> ⚠️ 위 스냅샷은 별도 AWS 계정(`738815760058`)에 구축된 인스턴스 기준이다. 현재 우리가 직접 운영 중인 계정(`379937169195`)의 실제 값(VPC `vpc-01016078a648a82a5`, Bastion `3.35.175.77` / `43.200.8.210`, ALB/ASG 미생성 — `ALB_ASG_GUIDE.md` 진행 후 갱신 예정)과는 다르니 혼동하지 말 것. 두 인프라 중 어느 쪽을 팀 공식 인프라로 삼을지는 별도 정리가 필요하다 (7.1절 참고).
-
-> 검증 기준일: 2026.08.18. AWS 리소스 상태는 시간에 따라 변할 수 있으므로 운영 점검 시 AWS 콘솔과 Terraform 상태를 함께 확인한다.
+> 검증 기준일: 2026.08.19. AWS 리소스 상태는 시간에 따라 변할 수 있으므로 운영 점검 시 AWS 콘솔과 Terraform 상태를 함께 확인한다.
 
 ---
 
@@ -380,7 +474,7 @@ GET /api/v1/flights/search?origin=ICN&destination=NRT&depart=2026-09-04&return=2
 | 배포 | Nginx 랜딩과 전체 React 데모가 분리 | CI/CD로 동일 빌드 산출물을 Web 2대에 배포 |
 | 관측성 | 기본 상태 검사 중심 | CloudWatch 로그·메트릭·알람 대시보드 |
 | 상태 관리 | Terraform state가 로컬에만 저장됨 (원격 백엔드 미전환) | S3 원격 상태 + DynamoDB 잠금 + 버전 관리 — **보류, 추후 진행 예정** (지금은 로컬 유지) |
-| 비용 | EC2 10대와 NAT 2대가 상시 실행 | 개발 환경 스케줄 종료·Spot/관리형 전환 검토 |
+| 비용 | EC2 8대와 NAT 2대가 상시 실행 | 개발 환경 스케줄 종료·Spot/관리형 전환 검토 |
 
 ### 7.1 단계별 개발 로드맵
 
@@ -393,30 +487,3 @@ GET /api/v1/flights/search?origin=ICN&destination=NRT&depart=2026-09-04&return=2
 | 5단계 | 관리형 서비스와 자동 확장 | RDS/ElastiCache/Auto Scaling 전환 |
 
 현재 Flyfast는 사용 가능한 프론트엔드 데모와 실제 AWS 네트워크·컴퓨팅 기반을 확보한 상태다. 다음 개발의 중심은 샘플 데이터를 예약 API로 대체하고, 역할별 EC2에 실제 백엔드·데이터 서비스를 배포하는 것이다.
-
----
-
-## 8. 리포지토리 구조 (현재 기준)
-
-> 현재 이 인프라 저장소 폴더에는 Terraform 코드와 운영 문서만 있고, 프론트엔드(React)·백엔드(FastAPI) 코드는 아직 이 폴더에 포함되어 있지 않다. 팀 리포지토리 구조를 하나로 합칠지, 인프라/앱을 별도 저장소로 유지할지는 팀원과 협의가 필요하다.
-
-```
-Flyfast_project/                    # 인프라 + 운영 문서 (현재 이 폴더)
-├── provider.tf                     # Terraform/AWS 프로바이더 버전
-├── values.tf                       # region, prefix, CIDR 등 변수
-├── network.tf                      # VPC, 서브넷, IGW, NAT GW, 라우트 테이블, 보안그룹
-├── key.tf                          # SSH 키페어 생성 및 로컬 저장
-├── ec2.tf                          # Bastion/Web/API/Redis/MySQL 10대
-├── output.tf                       # vpc_id, IP, key_path 등 출력값
-├── terraform.tfstate*              # ⚠️ 민감정보(SSH 프라이빗 키 평문) 포함 — git 커밋 금지
-├── Terraform-Flyfast-plan.md       # 최초 인프라 설계 명세
-├── PROJECT_PLAN.md                 # 프로젝트 진행 상태 추적 문서 (이 명세서와 별도 관리 중)
-├── INSTALL_GUIDE.md                # MariaDB/Valkey/FastAPI/Nginx 설치 명령어 정리
-├── ALB_ASG_GUIDE.md                # Web 계층 ALB+ASG 콘솔 구축 가이드
-├── Flyfast_프로젝트_명세서.{md,html,pdf}  # 이 문서
-└── airplane-project-v1.png         # 네트워크 구성도 원본 이미지
-
-(별도 위치 — 아직 미확정)
-├── frontend/                       # React + Vite (경로 미정)
-└── backend/                        # FastAPI (경로 미정)
-```

@@ -11,9 +11,12 @@
 
 ```bash
 export KEY=~/keys/Flyfast-key.pem
-export BASTION_A=3.39.248.101   # ap-northeast-2a
-export BASTION_C=54.180.119.77  # ap-northeast-2c
+export BASTION_A=13.125.14.131   # ap-northeast-2a
+export BASTION_C=3.36.74.59      # ap-northeast-2c
 ```
+
+> Elastic IP를 안 붙여놔서 인스턴스를 중지→시작할 때마다 Bastion 퍼블릭 IP가 바뀐다 (2026.08.18, 2026.08.19 확인).
+> 재시작 후에는 `aws ec2 describe-instances`로 현재 IP를 다시 확인해서 위 값을 갱신해야 한다. 프라이빗 IP는 안 바뀐다.
 
 내부 서버 접속 템플릿 (ProxyJump 사용, AZ-a 계열은 BASTION_A, AZ-c 계열은 BASTION_C 경유):
 
@@ -27,8 +30,10 @@ ssh -i $KEY -J ec2-user@$BASTION_A ec2-user@<내부 프라이빗 IP>
 |---|---|---|---|
 | web (Nginx) | 172.16.10.10 | 172.16.11.10 | web-a→BASTION_A / web-c→BASTION_C |
 | api (FastAPI) | 172.16.20.10 | 172.16.21.10 | api-a→BASTION_A / api-c→BASTION_C |
-| redis (Valkey) | 172.16.20.100 | 172.16.21.100 | redis-a→BASTION_A / redis-c→BASTION_C |
-| mysql (MariaDB) | 172.16.30.10 | 172.16.31.10 | mysql-a→BASTION_A / mysql-c→BASTION_C |
+| redis (Valkey) | 172.16.20.100 (단일, api-a/api-c 공통) | — | redis-a→BASTION_A |
+| mysql (MariaDB) | 172.16.30.10 (단일) | — | mysql-a→BASTION_A |
+
+> 2026-08-18: redis-c/mysql-c는 split-brain 위험 때문에 종료했다. Redis/MySQL은 각각 AZ-a의 단일 인스턴스만 운영하며, api-c도 이 단일 인스턴스를 원격으로 바라본다.
 
 파일 업로드(React 빌드물 등)는 `scp`에도 동일하게 `-o ProxyJump=...` 옵션을 붙여 사용:
 
@@ -38,7 +43,7 @@ scp -i $KEY -o ProxyJump=ec2-user@$BASTION_A -r ./frontend/build/* ec2-user@172.
 
 ---
 
-## 1. MariaDB 설치 — mysql-a (172.16.30.10) / mysql-c (172.16.31.10)
+## 1. MariaDB 설치 — mysql-a (172.16.30.10, 단일 인스턴스)
 
 AL2023 저장소에는 MariaDB 10.5 / 10.11 / 11.4 / 11.8 / 12.3 버전이 모두 있음. 안정적인 **10.11 (LTS)** 기준으로 정리.
 
@@ -74,17 +79,17 @@ GRANT ALL PRIVILEGES ON flyfast.* TO 'flyfast_app'@'%';
 FLUSH PRIVILEGES;
 ```
 
-api 서버에서 접속 테스트 (설치 후, api-a/api-c에서 실행):
+api 서버에서 접속 테스트 (설치 후, **api-a와 api-c 둘 다** mysql-a 하나를 바라보므로 양쪽에서 실행):
 
 ```bash
 mysql -h 172.16.30.10 -u flyfast_app -p flyfast -e "SELECT 1;"
 ```
 
-> mysql-c(172.16.31.10)도 동일한 절차 반복. Primary/Replica 복제 구성 여부는 PROJECT_PLAN.md 11절 미정 사항 — 결정 시 별도 복제 설정(`GRANT REPLICATION SLAVE`, `CHANGE MASTER TO` 등) 추가 필요.
+> db02(172.16.31.0/24) 서브넷은 비워둔 상태. 나중에 Primary-Replica가 필요해지면 그때 mysql-c를 새로 만들고 복제 설정(`GRANT REPLICATION SLAVE`, `CHANGE REPLICATION SOURCE TO` 등)을 추가한다 — 지금은 split-brain 방지를 위해 단일 인스턴스로 운영.
 
 ---
 
-## 2. Valkey 설치 — redis-a (172.16.20.100) / redis-c (172.16.21.100)
+## 2. Valkey 설치 — redis-a (172.16.20.100, 단일 인스턴스)
 
 ```bash
 # 1) 패키지 설치
@@ -108,13 +113,13 @@ sudo systemctl enable --now valkey
 sudo systemctl status valkey
 ```
 
-연결 테스트 (설치한 서버 자신 및 api 서버에서):
+연결 테스트 (설치한 서버 자신 및 api-a/api-c 양쪽에서):
 
 ```bash
 valkey-cli -h 172.16.20.100 ping   # PONG 응답 확인
 ```
 
-> redis-c(172.16.21.100)도 동일 절차 반복. PROJECT_PLAN.md 5절의 키 패턴(`seat:hold:*`, `flight:remain:*`, `session:*` 등)은 애플리케이션(FastAPI) 코드에서 사용하므로 서버 설정과는 무관.
+> backend02(172.16.21.0/24) 서브넷은 비워둔 상태. api-c도 이 redis-a(172.16.20.100) 하나를 원격으로 바라보므로 별도 설치가 필요 없다. PROJECT_PLAN.md 5절의 키 패턴(`seat:hold:*`, `flight:remain:*`, `session:*` 등)은 애플리케이션(FastAPI) 코드에서 사용하므로 서버 설정과는 무관.
 > AZ별 분리 운영 vs 단일 공유 여부는 PROJECT_PLAN.md 11절 미정 사항 — 단일 공유로 바꾸는 경우 api-a/api-c 양쪽 모두 동일한 Valkey 인스턴스 IP를 바라보도록 설정.
 
 ---
@@ -229,10 +234,10 @@ curl -s http://172.16.10.10/
 
 의존성이 적은 것부터 순서대로 진행 권장:
 
-1. [ ] mysql-a, mysql-c — MariaDB 설치 + `flyfast` DB/계정 생성 + 원격 접속 테스트
-2. [ ] redis-a, redis-c — Valkey 설치 + `valkey-cli ping` 테스트
-3. [ ] api-a, api-c — FastAPI 배포 + `/api/health` 200 응답 확인 + DB/Valkey 연결 확인
-4. [ ] web-a, web-c — Nginx 설치 + React 빌드물 서빙 확인 + `/api` 프록시 동작 확인
-5. [ ] Bastion 또는 로컬에서 `curl http://<web 퍼블릭 경로 or ALB>/api/health` 로 전체 체인 통합 확인
+1. [x] mysql-a (단일) — MariaDB 설치 + `flyfast` DB/계정 생성 + 원격 접속 테스트
+2. [x] redis-a (단일) — Valkey 설치 + `valkey-cli ping` 테스트
+3. [x] api-a, api-c — `backend/app` 배포 완료 + systemd(`flyfast-api.service`, `Restart=always`) 등록·기동 (2026.08.18). `.env`는 mysql-a/redis-a 프라이빗 IP로 직접 연결(터널 불필요), `JWT_SECRET`은 두 서버 동일 값으로 통일해 토큰 상호 호환 확인. 강제 kill 후 자동 재기동까지 검증
+4. [x] web-a, web-c — React 프로덕션 빌드 업로드 + Nginx `/api/` 프록시 연결 (web-a→api-a, web-c→api-c) 완료 (2026.08.18). `location /api/` 프록시가 nginx.conf 내장 기본 서버 블록에 가려지는 문제가 있었는데, `listen 80 default_server;`로 명시해서 해결
+5. [x] SSH 터널로 web-a(172.16.10.10:80)에 접속해 검색→로그인→좌석선점→예약→결제 전 구간을 실제 배포 환경에서 헤드리스 브라우저로 확인 완료 (2026.08.18). ALB 생성 전이라 브라우저에서 직접 접속하려면 임시 포트포워딩 필요 — `ALB_ASG_GUIDE.md` 진행 후에는 ALB URL로 바로 접근 가능
 
 > 콘솔에서 별도로 만들 web/api Auto Scaling Group의 Launch Template에는 위 1~4번 과정을 **User Data 스크립트**로 옮겨 자동화하는 것을 권장 (인스턴스가 새로 뜰 때마다 수동 설치할 수 없기 때문).
