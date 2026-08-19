@@ -11,6 +11,24 @@ const STATUS_LABEL = {
   CANCELLED: "취소됨",
 };
 
+function BookingCardSkeleton() {
+  return (
+    <div className="booking-card">
+      <div className="booking-card-header">
+        <div className="flight-card-airline">
+          <span className="skeleton" style={{ width: 34, height: 34, borderRadius: 8 }} />
+          <div className="flight-card-airline-text">
+            <span className="skeleton" style={{ width: 64, height: 13 }} />
+          </div>
+        </div>
+        <span className="skeleton" style={{ width: 52, height: 20, borderRadius: 12 }} />
+      </div>
+      <div className="skeleton" style={{ width: 140, height: 18, margin: "8px 0 6px" }} />
+      <div className="skeleton" style={{ width: 180, height: 12 }} />
+    </div>
+  );
+}
+
 export default function MyBookingsPage() {
   const [bookings, setBookings] = useState(null);
   const [error, setError] = useState(null);
@@ -49,7 +67,12 @@ export default function MyBookingsPage() {
       </section>
 
       {error && <p className="error-text">{error}</p>}
-      {!bookings && !error && <p>불러오는 중...</p>}
+      {!bookings && !error && (
+        <>
+          <BookingCardSkeleton />
+          <BookingCardSkeleton />
+        </>
+      )}
       {bookings && bookings.length === 0 && (
         <div className="empty-state">
           <p>예약 내역이 없습니다.</p>

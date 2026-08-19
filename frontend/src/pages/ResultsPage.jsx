@@ -70,6 +70,39 @@ function FlightCard({ f, mode, isSelected, onSelect, adults }) {
   );
 }
 
+function FlightCardSkeleton() {
+  return (
+    <div className="flight-card flight-card-skeleton">
+      <div className="flight-card-airline">
+        <span className="skeleton" style={{ width: 34, height: 34, borderRadius: 8 }} />
+        <div className="flight-card-airline-text">
+          <span className="skeleton" style={{ width: 64, height: 13 }} />
+          <span className="skeleton" style={{ width: 44, height: 11, marginTop: 4 }} />
+        </div>
+      </div>
+      <div className="flight-card-timeline">
+        <div className="skeleton" style={{ width: 48, height: 22 }} />
+        <div className="skeleton" style={{ width: 70, height: 14 }} />
+        <div className="skeleton" style={{ width: 48, height: 22 }} />
+      </div>
+      <div className="flight-card-price-col">
+        <div className="skeleton" style={{ width: 84, height: 20 }} />
+      </div>
+    </div>
+  );
+}
+
+function FlightListSkeleton({ title }) {
+  return (
+    <section className="flight-list">
+      <h2 className="section-title">{title}</h2>
+      <FlightCardSkeleton />
+      <FlightCardSkeleton />
+      <FlightCardSkeleton />
+    </section>
+  );
+}
+
 function FlightList({ title, flights, mode, selectedId, onSelect, adults }) {
   if (!flights) return null;
 
@@ -77,7 +110,13 @@ function FlightList({ title, flights, mode, selectedId, onSelect, adults }) {
     <section className="flight-list">
       <h2 className="section-title">{title}</h2>
       {flights.length === 0 ? (
-        <p className="empty-state">해당 조건의 항공편이 없습니다.</p>
+        <div className="empty-state">
+          <p>해당 조건의 항공편이 없습니다.</p>
+          <p className="hint-text">다른 날짜를 선택하거나 홈에서 다시 검색해보세요.</p>
+          <Link to="/" className="secondary-btn">
+            홈으로 돌아가기
+          </Link>
+        </div>
       ) : (
         flights.map((f) => (
           <FlightCard
@@ -142,7 +181,12 @@ export default function ResultsPage() {
         </p>
       )}
 
-      {loading && <p>불러오는 중...</p>}
+      {loading && (
+        <>
+          <FlightListSkeleton title="가는 편" />
+          {isRoundTrip && <FlightListSkeleton title="오는 편" />}
+        </>
+      )}
       {error && <p className="error-text">{error}</p>}
 
       {result && (

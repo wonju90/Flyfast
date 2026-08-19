@@ -206,7 +206,29 @@ export default function FlightDetailPage() {
   if (!flight) {
     return (
       <div className="page">
-        <p>불러오는 중...</p>
+        <section className="route-hero route-hero-skeleton">
+          <div className="skeleton" style={{ width: 180, height: 20, margin: "0 auto 10px" }} />
+          <div className="skeleton" style={{ width: 240, height: 14, margin: "0 auto" }} />
+        </section>
+        <div className="seat-map">
+          <span className="seat-map-nose" aria-hidden="true" />
+          {[0, 1].map((section) => (
+            <div key={section} className="cabin-section">
+              <div className="skeleton" style={{ width: 96, height: 12, margin: "0 auto 10px" }} />
+              {[0, 1, 2].map((row) => (
+                <div key={row} className="seat-row">
+                  {[0, 1, 2].map((seat) => (
+                    <span
+                      key={seat}
+                      className="skeleton"
+                      style={{ width: 56, height: 50, borderRadius: "10px 10px 4px 4px" }}
+                    />
+                  ))}
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
