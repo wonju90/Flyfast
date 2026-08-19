@@ -61,15 +61,16 @@ export default function FlightDetailPage() {
   const [searchParams] = useSearchParams();
   const returnScheduleId = searchParams.get("returnScheduleId");
   const tripLeg = searchParams.get("tripLeg");
+  const adults = Math.max(1, Number(searchParams.get("adults")) || 1);
 
   const [flight, setFlight] = useState(null);
   const [error, setError] = useState(null);
-  const [selectedSeat, setSelectedSeat] = useState(null);
+  const [selectedSeats, setSelectedSeats] = useState([]);
 
   // step: browsing | held | booked | confirmed
   const [step, setStep] = useState("browsing");
   const [secondsLeft, setSecondsLeft] = useState(0);
-  const [passengerName, setPassengerName] = useState("");
+  const [passengerNames, setPassengerNames] = useState({});
   const [booking, setBooking] = useState(null);
   const [paymentResult, setPaymentResult] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -104,8 +105,16 @@ export default function FlightDetailPage() {
 
   function selectSeat(seatNo, status) {
     if (status !== "AVAILABLE") return;
-    setSelectedSeat(seatNo);
     setError(null);
+    if (selectedSeats.includes(seatNo)) {
+      setSelectedSeats(selectedSeats.filter((s) => s !== seatNo));
+      return;
+    }
+    if (selectedSeats.length >= adults) {
+      setError(`좌석은 인원 수만큼(최대 ${adults}석) 선택할 수 있습니다.`);
+      return;
+    }
+    setSelectedSeats([...selectedSeats, seatNo]);
   }
 
   async function handleHold() {
@@ -113,48 +122,67 @@ export default function FlightDetailPage() {
       navigate("/login");
       return;
     }
-    if (!selectedSeat) {
+    if (selectedSeats.length === 0) {
       setError("좌석을 먼저 선택해주세요.");
       return;
     }
     setError(null);
     setBusy(true);
-    try {
-      await api.holdSeat(scheduleId, selectedSeat);
-      setSecondsLeft(HOLD_SECONDS);
-      setStep("held");
-    } catch (err) {
-      setError(translateError(err));
-      loadFlight();
-    } finally {
-      setBusy(false);
+
+    const held = [];
+    let failedSeat = null;
+    let holdError = null;
+    for (const seatNo of selectedSeats) {
+      try {
+        await api.holdSeat(scheduleId, seatNo);
+        held.push(seatNo);
+      } catch (err) {
+        failedSeat = seatNo;
+        holdError = err;
+        break;
+      }
     }
+
+    if (holdError) {
+      // 이미 선점한 좌석이 있다면, 일부만 잡힌 채로 남지 않도록 전부 반환한다.
+      await Promise.allSettled(held.map((s) => api.releaseSeat(scheduleId, s)));
+      setError(
+        held.length > 0
+          ? `${failedSeat} 좌석 선점에 실패해 이미 선점한 좌석도 함께 취소했습니다 — ${translateError(holdError)}`
+          : translateError(holdError)
+      );
+      setSelectedSeats([]);
+      loadFlight();
+      setBusy(false);
+      return;
+    }
+
+    setPassengerNames(Object.fromEntries(selectedSeats.map((s) => [s, ""])));
+    setSecondsLeft(HOLD_SECONDS);
+    setStep("held");
+    setBusy(false);
   }
 
   async function handleReleaseHold() {
     setBusy(true);
-    try {
-      await api.releaseSeat(scheduleId, selectedSeat);
-    } catch {
-      // 이미 만료됐을 수 있음 — 무시하고 초기화
-    } finally {
-      setBusy(false);
-      backToSeatSelection();
-    }
+    await Promise.allSettled(selectedSeats.map((s) => api.releaseSeat(scheduleId, s)));
+    setBusy(false);
+    backToSeatSelection();
   }
 
   function backToSeatSelection() {
     setStep("browsing");
-    setSelectedSeat(null);
+    setSelectedSeats([]);
     setBooking(null);
-    setPassengerName("");
+    setPassengerNames({});
     loadFlight();
   }
 
   async function handleCreateBooking(e) {
     e.preventDefault();
-    if (!passengerName.trim()) {
-      setError("탑승객 이름을 입력해주세요.");
+    const missing = selectedSeats.filter((seatNo) => !passengerNames[seatNo]?.trim());
+    if (missing.length > 0) {
+      setError("모든 탑승객의 이름을 입력해주세요.");
       return;
     }
     setError(null);
@@ -162,7 +190,10 @@ export default function FlightDetailPage() {
     try {
       const result = await api.createBooking({
         schedule_id: Number(scheduleId),
-        passengers: [{ seat_no: selectedSeat, name: passengerName.trim() }],
+        passengers: selectedSeats.map((seatNo) => ({
+          seat_no: seatNo,
+          name: passengerNames[seatNo].trim(),
+        })),
       });
       setBooking(result);
       setStep("booked");
@@ -240,11 +271,18 @@ export default function FlightDetailPage() {
         </p>
         <p className="route-hero-meta">
           {formatTime(flight.depart_at)} ~ {formatTime(flight.arrival_at)} · 잔여{" "}
-          {flight.remaining_seats}석
+          {flight.remaining_seats}석{adults > 1 ? ` · 성인 ${adults}명` : ""}
         </p>
       </section>
 
       {error && <p className="error-text">{error}</p>}
+
+      {step === "browsing" && flight.remaining_seats < adults && (
+        <p className="error-text">
+          잔여 좌석({flight.remaining_seats}석)이 인원 수({adults}명)보다 적습니다. 인원을 줄이거나
+          다른 항공편을 선택해주세요.
+        </p>
+      )}
 
       {step === "browsing" && (
         <>
@@ -268,7 +306,7 @@ export default function FlightDetailPage() {
                             className={
                               "seat" +
                               (s.status !== "AVAILABLE" ? " seat-sold" : "") +
-                              (selectedSeat === s.seat_no ? " seat-selected" : "")
+                              (selectedSeats.includes(s.seat_no) ? " seat-selected" : "")
                             }
                             disabled={s.status !== "AVAILABLE"}
                             title={`${s.seat_class} · ${formatWon(s.fare)}`}
@@ -286,10 +324,22 @@ export default function FlightDetailPage() {
               </div>
             ))}
           </div>
-          <p className="hint-text">버튼 위에 마우스를 올리면 좌석 클래스와 요금을 볼 수 있습니다.</p>
+          <p className="hint-text">
+            버튼 위에 마우스를 올리면 좌석 클래스와 요금을 볼 수 있습니다.
+            {adults > 1 && ` 인원 ${adults}명 — 좌석 ${selectedSeats.length}/${adults}석 선택됨.`}
+          </p>
           {!user && <p className="hint-text">좌석을 선점하려면 로그인이 필요합니다.</p>}
-          <button className="primary-btn" disabled={!selectedSeat || busy} onClick={handleHold}>
-            {selectedSeat ? `${selectedSeat} 좌석 10분 선점하기` : "좌석을 선택하세요"}
+          <button
+            className="primary-btn"
+            disabled={selectedSeats.length === 0 || busy}
+            onClick={handleHold}
+          >
+            {selectedSeats.length > 0
+              ? `${selectedSeats.join(", ")} 좌석 10분 선점하기` +
+                (adults > 1 ? ` (${selectedSeats.length}/${adults}명)` : "")
+              : adults > 1
+                ? `좌석을 선택하세요 (${adults}명)`
+                : "좌석을 선택하세요"}
           </button>
         </>
       )}
@@ -297,16 +347,24 @@ export default function FlightDetailPage() {
       {step === "held" && (
         <div className="hold-panel">
           <p>
-            <strong>{selectedSeat}</strong> 좌석을 선점했습니다. 남은 시간:{" "}
+            <strong>{selectedSeats.join(", ")}</strong> 좌석 {selectedSeats.length}석을
+            선점했습니다. 남은 시간:{" "}
             <strong>
               {Math.floor(secondsLeft / 60)}:{String(secondsLeft % 60).padStart(2, "0")}
             </strong>
           </p>
           <form onSubmit={handleCreateBooking}>
-            <label>
-              탑승객 이름
-              <input value={passengerName} onChange={(e) => setPassengerName(e.target.value)} />
-            </label>
+            {selectedSeats.map((seatNo) => (
+              <label key={seatNo}>
+                {seatNo} 탑승객 이름
+                <input
+                  value={passengerNames[seatNo] || ""}
+                  onChange={(e) =>
+                    setPassengerNames((prev) => ({ ...prev, [seatNo]: e.target.value }))
+                  }
+                />
+              </label>
+            ))}
             <div className="button-row">
               <button type="submit" className="primary-btn" disabled={busy}>
                 예약 생성
@@ -323,6 +381,9 @@ export default function FlightDetailPage() {
         <div className="payment-panel">
           <p>
             예약번호 <strong>{booking.booking_no}</strong> 생성됨 (결제 대기)
+          </p>
+          <p className="hint-text">
+            탑승객: {booking.passengers.map((p) => `${p.name}(${p.seat_no})`).join(", ")}
           </p>
           <p className="payment-amount">결제 금액: {formatWon(booking.amount)}</p>
           <p className="hint-text">
@@ -354,7 +415,10 @@ export default function FlightDetailPage() {
           </p>
           <div className="button-row">
             {returnScheduleId && (
-              <Link className="primary-btn" to={`/flights/${returnScheduleId}?tripLeg=return`}>
+              <Link
+                className="primary-btn"
+                to={`/flights/${returnScheduleId}?tripLeg=return&adults=${adults}`}
+              >
                 다음: 오는 편 좌석 선택하기
               </Link>
             )}

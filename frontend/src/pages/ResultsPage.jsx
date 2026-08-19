@@ -30,7 +30,7 @@ function formatDuration(departIso, arrivalIso) {
   return `${h}시간 ${m}분`;
 }
 
-function FlightCard({ f, mode, isSelected, onSelect }) {
+function FlightCard({ f, mode, isSelected, onSelect, adults }) {
   const airline = getAirlineInfo(f.flight_no);
   const isFull = f.remaining_seats === 0;
   const isLow = !isFull && f.remaining_seats < 10;
@@ -89,13 +89,13 @@ function FlightCard({ f, mode, isSelected, onSelect }) {
   }
 
   return (
-    <Link to={`/flights/${f.schedule_id}`} className="flight-card">
+    <Link to={`/flights/${f.schedule_id}?adults=${adults}`} className="flight-card">
       {content}
     </Link>
   );
 }
 
-function FlightList({ title, flights, mode, selectedId, onSelect }) {
+function FlightList({ title, flights, mode, selectedId, onSelect, adults }) {
   if (!flights) return null;
 
   return (
@@ -111,6 +111,7 @@ function FlightList({ title, flights, mode, selectedId, onSelect }) {
             mode={mode}
             isSelected={selectedId === f.schedule_id}
             onSelect={onSelect}
+            adults={adults}
           />
         ))
       )}
@@ -128,6 +129,7 @@ export default function ResultsPage() {
   const [selectedInbound, setSelectedInbound] = useState(null);
 
   const isRoundTrip = !!searchParams.get("return");
+  const adults = Math.max(1, Number(searchParams.get("adults")) || 1);
 
   useEffect(() => {
     setLoading(true);
@@ -142,7 +144,7 @@ export default function ResultsPage() {
   }, [searchParams]);
 
   function handleContinue() {
-    navigate(`/flights/${selectedOutbound}?returnScheduleId=${selectedInbound}`);
+    navigate(`/flights/${selectedOutbound}?returnScheduleId=${selectedInbound}&adults=${adults}`);
   }
 
   return (
@@ -176,6 +178,7 @@ export default function ResultsPage() {
             mode={isRoundTrip ? "select" : "link"}
             selectedId={selectedOutbound}
             onSelect={setSelectedOutbound}
+            adults={adults}
           />
           {result.inbound && (
             <FlightList
@@ -184,6 +187,7 @@ export default function ResultsPage() {
               mode="select"
               selectedId={selectedInbound}
               onSelect={setSelectedInbound}
+              adults={adults}
             />
           )}
 
