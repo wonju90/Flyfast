@@ -23,7 +23,7 @@ export default function Navbar() {
         {user ? (
           <>
             <Link to="/bookings">내 예약</Link>
-            <span className="nav-user">{user.email}</span>
+            <span className="nav-user">{user.name || user.email}님</span>
             <button className="link-btn" onClick={handleLogout}>
               로그아웃
             </button>
