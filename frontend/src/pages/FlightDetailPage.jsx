@@ -23,6 +23,37 @@ function formatManwon(amount) {
   return amount == null ? "" : `${Math.round(amount / 10000)}만`;
 }
 
+const CABIN_ORDER = ["FIRST", "BUSINESS", "ECONOMY"];
+const CABIN_LABELS = { FIRST: "퍼스트 클래스", BUSINESS: "비즈니스 클래스", ECONOMY: "이코노미 클래스" };
+
+// 좌석 목록을 실제 비행기처럼 클래스(캐빈) -> 행(row) -> 열(A,B,C...) 순서로 묶는다.
+function groupSeatsForMap(seats) {
+  const byClass = {};
+  for (const s of seats) {
+    (byClass[s.seat_class] ??= []).push(s);
+  }
+
+  const classes = Object.keys(byClass).sort((a, b) => {
+    const ia = CABIN_ORDER.indexOf(a);
+    const ib = CABIN_ORDER.indexOf(b);
+    return (ia === -1 ? CABIN_ORDER.length : ia) - (ib === -1 ? CABIN_ORDER.length : ib);
+  });
+
+  return classes.map((seatClass) => {
+    const byRow = {};
+    for (const s of byClass[seatClass]) {
+      const rowNo = Number(s.seat_no.match(/^\d+/)?.[0] ?? 0);
+      (byRow[rowNo] ??= []).push(s);
+    }
+    const rows = Object.keys(byRow)
+      .map(Number)
+      .sort((a, b) => a - b)
+      .map((rowNo) => byRow[rowNo].slice().sort((a, b) => a.seat_no.localeCompare(b.seat_no)));
+
+    return { seatClass, rows };
+  });
+}
+
 export default function FlightDetailPage() {
   const { scheduleId } = useParams();
   const { user } = useAuth();
@@ -214,21 +245,41 @@ export default function FlightDetailPage() {
       {step === "browsing" && (
         <>
           <div className="seat-map">
-            {flight.seats.map((s) => (
-              <button
-                key={s.seat_no}
-                className={
-                  "seat" +
-                  (s.status !== "AVAILABLE" ? " seat-sold" : "") +
-                  (selectedSeat === s.seat_no ? " seat-selected" : "")
-                }
-                disabled={s.status !== "AVAILABLE"}
-                title={`${s.seat_class} · ${formatWon(s.fare)}`}
-                onClick={() => selectSeat(s.seat_no, s.status)}
-              >
-                <span className="seat-no">{s.seat_no}</span>
-                <span className="seat-fare">{formatManwon(s.fare)}</span>
-              </button>
+            <span className="seat-map-nose" aria-hidden="true" />
+            {groupSeatsForMap(flight.seats).map(({ seatClass, rows }) => (
+              <div key={seatClass} className={`cabin-section cabin-${seatClass.toLowerCase()}`}>
+                <p className="cabin-label">{CABIN_LABELS[seatClass] ?? seatClass}</p>
+                {rows.map((rowSeats, rowIdx) => {
+                  const aisleAt = rowSeats.length >= 4 ? Math.ceil(rowSeats.length / 2) : null;
+                  return (
+                    <div key={rowIdx} className="seat-row">
+                      {rowSeats.flatMap((s, seatIdx) => {
+                        const nodes = [];
+                        if (aisleAt !== null && seatIdx === aisleAt) {
+                          nodes.push(<span key={`aisle-${rowIdx}`} className="seat-aisle" />);
+                        }
+                        nodes.push(
+                          <button
+                            key={s.seat_no}
+                            className={
+                              "seat" +
+                              (s.status !== "AVAILABLE" ? " seat-sold" : "") +
+                              (selectedSeat === s.seat_no ? " seat-selected" : "")
+                            }
+                            disabled={s.status !== "AVAILABLE"}
+                            title={`${s.seat_class} · ${formatWon(s.fare)}`}
+                            onClick={() => selectSeat(s.seat_no, s.status)}
+                          >
+                            <span className="seat-no">{s.seat_no}</span>
+                            <span className="seat-fare">{formatManwon(s.fare)}</span>
+                          </button>
+                        );
+                        return nodes;
+                      })}
+                    </div>
+                  );
+                })}
+              </div>
             ))}
           </div>
           <p className="hint-text">버튼 위에 마우스를 올리면 좌석 클래스와 요금을 볼 수 있습니다.</p>
