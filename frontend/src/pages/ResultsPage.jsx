@@ -2,33 +2,8 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { api } from "../api/client";
 import { translateError } from "../api/errorMessages";
-
-const AIRLINE_INFO = {
-  KE: { name: "대한항공", color: "#0b3d78" },
-  OZ: { name: "아시아나항공", color: "#8f1b2d" },
-};
-
-function getAirlineInfo(flightNo) {
-  const code = flightNo.slice(0, 2);
-  return AIRLINE_INFO[code] ?? { name: code, color: "var(--navy)" };
-}
-
-function formatClock(iso) {
-  return new Date(iso).toLocaleTimeString("ko-KR", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
-}
-
-function formatDuration(departIso, arrivalIso) {
-  const mins = Math.round((new Date(arrivalIso) - new Date(departIso)) / 60000);
-  const h = Math.floor(mins / 60);
-  const m = mins % 60;
-  if (h <= 0) return `${m}분`;
-  if (m === 0) return `${h}시간`;
-  return `${h}시간 ${m}분`;
-}
+import { getAirlineInfo } from "../utils/airline";
+import { formatClock, formatDuration } from "../utils/dateTime";
 
 function FlightCard({ f, mode, isSelected, onSelect, adults }) {
   const airline = getAirlineInfo(f.flight_no);

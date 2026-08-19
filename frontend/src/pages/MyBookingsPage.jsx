@@ -1,15 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "../api/client";
 import { translateError } from "../api/errorMessages";
-
-function formatTime(iso) {
-  return new Date(iso).toLocaleString("ko-KR", {
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
+import { formatTime } from "../utils/dateTime";
 
 const STATUS_LABEL = {
   PENDING: "결제 대기",

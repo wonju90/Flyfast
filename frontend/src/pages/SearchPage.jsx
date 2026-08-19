@@ -4,12 +4,7 @@ import { api } from "../api/client";
 import ApiServerBanner from "../components/ApiServerBanner";
 import PriceCalendar from "../components/PriceCalendar";
 import { useAuth } from "../context/AuthContext";
-
-function todayStr() {
-  const now = new Date();
-  now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-  return now.toISOString().slice(0, 10);
-}
+import { todayStr } from "../utils/dateTime";
 
 export default function SearchPage() {
   const navigate = useNavigate();

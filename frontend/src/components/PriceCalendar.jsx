@@ -1,19 +1,9 @@
 import { useEffect, useState } from "react";
 import { api } from "../api/client";
+import { toDateStr } from "../utils/dateTime";
+import { formatManwon } from "../utils/price";
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
-
-function pad2(n) {
-  return String(n).padStart(2, "0");
-}
-
-function toDateStr(year, month, day) {
-  return `${year}-${pad2(month + 1)}-${pad2(day)}`;
-}
-
-function formatManwon(amount) {
-  return `${Math.round(amount / 10000)}만`;
-}
 
 // variant="popover"(기본): 출발일 트리거 아래 단독으로 뜨는 팝오버(1단계, 편도).
 // variant="inline": 왕복에서 가는날/오는날 달력 두 개를 나란히 배치할 때 쓰는 형태(2단계) — 위치 지정 없이 내용만 렌더링.
