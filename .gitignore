@@ -21,6 +21,17 @@ override.tf.json
 *.pem
 *.key
 
+# Backend — DB 비밀번호 등 실 접속정보 포함, 절대 커밋 금지
+backend/.env
+backend/venv/
+backend/__pycache__/
+backend/**/__pycache__/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+
 # macOS
 .DS_Store
 
