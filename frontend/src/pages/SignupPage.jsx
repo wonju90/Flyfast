@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import { translateError } from "../api/errorMessages";
 import { useAuth } from "../context/AuthContext";
@@ -35,9 +35,12 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="page narrow">
-      <h1>회원가입</h1>
-      <form className="auth-form" onSubmit={handleSubmit}>
+    <div className="auth-page">
+      <div className="auth-hero">
+        <h1 className="auth-hero-title">회원가입</h1>
+        <p className="auth-hero-subtitle">몇 가지만 입력하면 바로 예약을 시작할 수 있어요.</p>
+      </div>
+      <form className="auth-form auth-form-card" onSubmit={handleSubmit}>
         <label>
           이름
           <input value={form.name} onChange={(e) => update("name", e.target.value)} required />
@@ -64,6 +67,9 @@ export default function SignupPage() {
         <button className="primary-btn" type="submit" disabled={busy}>
           가입하기
         </button>
+        <p className="auth-switch-link">
+          이미 계정이 있으신가요? <Link to="/login">로그인</Link>
+        </p>
       </form>
     </div>
   );

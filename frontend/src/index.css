@@ -144,8 +144,36 @@ main {
   padding: 24px 16px 64px;
 }
 
-.page.narrow {
+.auth-hero {
+  background: linear-gradient(135deg, var(--navy) 0%, #234876 60%, var(--accent) 100%);
+  padding: 48px 16px 72px;
+  text-align: center;
+}
+
+.auth-hero-title {
+  color: white;
+  font-size: 1.7rem;
+  margin: 0 0 8px;
+}
+
+.auth-hero-subtitle {
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.auth-form-card {
   max-width: 400px;
+  width: calc(100% - 32px);
+  margin: -48px auto 0;
+  box-shadow: 0 16px 32px rgba(15, 30, 60, 0.18);
+}
+
+.auth-switch-link {
+  margin: 0;
+  text-align: center;
+  color: #666;
+  font-size: 0.88rem;
 }
 
 .hero {
@@ -607,8 +635,13 @@ select {
 }
 
 .empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
   color: #888;
-  padding: 16px 0;
+  padding: 32px 0;
+  text-align: center;
 }
 
 .search-summary {
@@ -1006,6 +1039,13 @@ select {
   margin-bottom: 6px;
 }
 
+.booking-card-route {
+  color: var(--navy);
+  font-weight: 700;
+  font-size: 1.05rem;
+  margin: 0 0 2px;
+}
+
 .booking-no {
   color: #888;
   font-size: 0.85rem;
@@ -1069,6 +1109,14 @@ select {
 
   .hero-search-card {
     margin-bottom: -40px;
+  }
+
+  .auth-hero {
+    padding: 32px 12px 56px;
+  }
+
+  .auth-form-card {
+    margin-top: -32px;
   }
 
   .home-features {
