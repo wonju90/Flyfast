@@ -1103,6 +1103,10 @@ select {
   font-size: 0.85rem;
 }
 
+.search-history-tabs {
+  margin-bottom: 16px;
+}
+
 .search-history-card {
   background: white;
   border: 1px solid var(--border);

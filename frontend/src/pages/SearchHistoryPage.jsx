@@ -78,6 +78,7 @@ function SearchHistoryRow({ entry, onToggleFavorite, onDelete }) {
 export default function SearchHistoryPage() {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
+  const [tab, setTab] = useState("favorites"); // "favorites" | "recent"
 
   const load = useCallback(() => {
     api
@@ -89,6 +90,12 @@ export default function SearchHistoryPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    if (data && data.favorites.length === 0 && data.recent.length > 0) {
+      setTab("recent");
+    }
+  }, [data]);
 
   async function handleToggleFavorite(entry) {
     const next = !entry.is_favorite;
@@ -110,6 +117,7 @@ export default function SearchHistoryPage() {
   }
 
   const isEmpty = data && data.favorites.length === 0 && data.recent.length === 0;
+  const activeList = data && (tab === "favorites" ? data.favorites : data.recent);
 
   return (
     <div className="page">
@@ -136,32 +144,44 @@ export default function SearchHistoryPage() {
         </div>
       )}
 
-      {data && data.favorites.length > 0 && (
-        <section className="flight-list">
-          <h2 className="section-title">즐겨찾기</h2>
-          {data.favorites.map((entry) => (
-            <SearchHistoryRow
-              key={entry.id}
-              entry={entry}
-              onToggleFavorite={handleToggleFavorite}
-              onDelete={handleDelete}
-            />
-          ))}
-        </section>
-      )}
+      {data && !isEmpty && (
+        <>
+          <div className="trip-type-toggle search-history-tabs" role="group" aria-label="검색 기록 탭">
+            <button
+              type="button"
+              className={tab === "favorites" ? "trip-type-btn active" : "trip-type-btn"}
+              onClick={() => setTab("favorites")}
+            >
+              즐겨찾기 ({data.favorites.length})
+            </button>
+            <button
+              type="button"
+              className={tab === "recent" ? "trip-type-btn active" : "trip-type-btn"}
+              onClick={() => setTab("recent")}
+            >
+              최근 검색 ({data.recent.length})
+            </button>
+          </div>
 
-      {data && data.recent.length > 0 && (
-        <section className="flight-list">
-          <h2 className="section-title">최근 검색</h2>
-          {data.recent.map((entry) => (
-            <SearchHistoryRow
-              key={entry.id}
-              entry={entry}
-              onToggleFavorite={handleToggleFavorite}
-              onDelete={handleDelete}
-            />
-          ))}
-        </section>
+          <section className="flight-list">
+            {activeList.length === 0 ? (
+              <p className="hint-text">
+                {tab === "favorites"
+                  ? "아직 즐겨찾기한 검색이 없습니다. ☆ 버튼으로 추가해보세요."
+                  : "최근 검색한 노선이 없습니다."}
+              </p>
+            ) : (
+              activeList.map((entry) => (
+                <SearchHistoryRow
+                  key={entry.id}
+                  entry={entry}
+                  onToggleFavorite={handleToggleFavorite}
+                  onDelete={handleDelete}
+                />
+              ))
+            )}
+          </section>
+        </>
       )}
     </div>
   );
