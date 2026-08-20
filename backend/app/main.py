@@ -13,6 +13,7 @@ from app.routers.airports import router as airports_router
 from app.routers.auth import router as auth_router
 from app.routers.bookings import router as bookings_router
 from app.routers.flights import router as flights_router
+from app.routers.search_history import router as search_history_router
 from app.routers.seats import router as seats_router
 
 # CI/CD 도입 전까지는 배포할 때 이 값을 손으로 올린다. 파이프라인이 생기면
@@ -35,6 +36,7 @@ app.include_router(airports_router)
 app.include_router(flights_router)
 app.include_router(seats_router)
 app.include_router(bookings_router)
+app.include_router(search_history_router)
 
 
 # 5.1절 응답 코드 표에서 422는 FARE_CHANGED(결제 단계) 전용으로 예약되어 있어,

@@ -58,6 +58,13 @@ export default function Navbar() {
                 >
                   내 예약
                 </Link>
+                <Link
+                  to="/search-history"
+                  className="nav-user-dropdown-item"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  검색 기록
+                </Link>
                 <button
                   type="button"
                   className="nav-user-dropdown-item"

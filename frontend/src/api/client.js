@@ -120,7 +120,7 @@ export const api = {
     const query = new URLSearchParams(
       Object.fromEntries(Object.entries(params).filter(([, v]) => v !== undefined && v !== ""))
     );
-    return request(`/api/v1/flights/search?${query.toString()}`);
+    return request(`/api/v1/flights/search?${query.toString()}`, { auth: true });
   },
 
   flightDetail: (scheduleId) => request(`/api/v1/flights/${scheduleId}`),
@@ -155,4 +155,16 @@ export const api = {
 
   cancelBooking: (bookingId) =>
     request(`/api/v1/bookings/${bookingId}/cancel`, { method: "PATCH", auth: true }),
+
+  mySearchHistory: () => request("/api/v1/search-history/me", { auth: true }),
+
+  setSearchFavorite: (historyId, isFavorite) =>
+    request(`/api/v1/search-history/${historyId}/favorite`, {
+      method: "PATCH",
+      body: { is_favorite: isFavorite },
+      auth: true,
+    }),
+
+  deleteSearchHistory: (historyId) =>
+    request(`/api/v1/search-history/${historyId}`, { method: "DELETE", auth: true }),
 };

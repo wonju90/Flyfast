@@ -161,13 +161,36 @@ export default function ResultsPage() {
     navigate(`/flights/${selectedOutbound}?returnScheduleId=${selectedInbound}&adults=${adults}`);
   }
 
+  async function toggleFavorite() {
+    const next = !result.is_favorite;
+    setResult((prev) => ({ ...prev, is_favorite: next }));
+    try {
+      await api.setSearchFavorite(result.history_id, next);
+    } catch {
+      setResult((prev) => ({ ...prev, is_favorite: !next }));
+    }
+  }
+
   return (
     <div className="page">
       <section className="route-hero">
-        <p className="route-hero-title">
-          {searchParams.get("origin")} <span aria-hidden="true">→</span>{" "}
-          {searchParams.get("destination")}
-        </p>
+        <div className="route-hero-title-row">
+          <p className="route-hero-title">
+            {searchParams.get("origin")} <span aria-hidden="true">→</span>{" "}
+            {searchParams.get("destination")}
+          </p>
+          {result && result.history_id != null && (
+            <button
+              type="button"
+              className={"favorite-star-btn" + (result.is_favorite ? " favorite-star-active" : "")}
+              onClick={toggleFavorite}
+              aria-pressed={result.is_favorite}
+              aria-label={result.is_favorite ? "즐겨찾기 해제" : "즐겨찾기 추가"}
+            >
+              {result.is_favorite ? "★" : "☆"}
+            </button>
+          )}
+        </div>
         <p className="route-hero-meta">
           {searchParams.get("depart")}
           {isRoundTrip ? ` · 귀국 ${searchParams.get("return")}` : ""} · 성인{" "}

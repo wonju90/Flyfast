@@ -1,10 +1,11 @@
 from datetime import datetime, timedelta
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import text
 
 from app.db import engine
+from app.deps import get_optional_user_id
 
 router = APIRouter(prefix="/api/v1", tags=["flights"])
 
@@ -64,6 +65,49 @@ def _search_one_way(conn, origin: str, destination: str, day: datetime):
     return [dict(row) for row in rows]
 
 
+def _record_search_history(conn, user_id: int, origin, destination, depart_day, return_day, adults):
+    # <=> (null-safe equal)로 조회한다 — return_date가 NULL인 편도 검색을 반복해도 매번 새 행이
+    # 쌓이지 않고 updated_at만 갱신되게 하기 위해서다 (일반 = 비교는 NULL과 절대 안 맞는다).
+    existing = conn.execute(
+        text(
+            "SELECT id, is_favorite FROM search_history "
+            "WHERE user_id = :user_id AND origin = :origin AND destination = :destination "
+            "AND depart_date = :depart_date AND return_date <=> :return_date AND adults = :adults"
+        ),
+        {
+            "user_id": user_id,
+            "origin": origin,
+            "destination": destination,
+            "depart_date": depart_day.date(),
+            "return_date": return_day.date() if return_day else None,
+            "adults": adults,
+        },
+    ).mappings().first()
+
+    if existing:
+        conn.execute(
+            text("UPDATE search_history SET updated_at = NOW() WHERE id = :id"),
+            {"id": existing["id"]},
+        )
+        return existing["id"], bool(existing["is_favorite"])
+
+    result = conn.execute(
+        text(
+            "INSERT INTO search_history (user_id, origin, destination, depart_date, return_date, adults) "
+            "VALUES (:user_id, :origin, :destination, :depart_date, :return_date, :adults)"
+        ),
+        {
+            "user_id": user_id,
+            "origin": origin,
+            "destination": destination,
+            "depart_date": depart_day.date(),
+            "return_date": return_day.date() if return_day else None,
+            "adults": adults,
+        },
+    )
+    return result.lastrowid, False
+
+
 @router.get("/flights/search")
 def search_flights(
     origin: str = Query(...),
@@ -72,6 +116,7 @@ def search_flights(
     adults: int = Query(1),
     direct: bool = Query(True),
     return_date: Optional[str] = Query(None, alias="return"),
+    current_user_id: Optional[int] = Depends(get_optional_user_id),
 ):
     origin = origin.strip().upper()
     destination = destination.strip().upper()
@@ -84,13 +129,17 @@ def search_flights(
         raise _invalid_input("adults must be between 1 and 9")
 
     depart_day = _parse_date(depart, "depart")
+    return_day = _parse_date(return_date, "return") if return_date else None
 
-    with engine.connect() as conn:
+    with engine.begin() as conn:
         outbound = _search_one_way(conn, origin, destination, depart_day)
-        inbound = None
-        if return_date:
-            return_day = _parse_date(return_date, "return")
-            inbound = _search_one_way(conn, destination, origin, return_day)
+        inbound = _search_one_way(conn, destination, origin, return_day) if return_day else None
+
+        history_id = is_favorite = None
+        if current_user_id is not None:
+            history_id, is_favorite = _record_search_history(
+                conn, current_user_id, origin, destination, depart_day, return_day, adults
+            )
 
     result = {
         "origin": origin,
@@ -103,6 +152,9 @@ def search_flights(
     if return_date:
         result["return"] = return_date
         result["inbound"] = inbound
+    if current_user_id is not None:
+        result["history_id"] = history_id
+        result["is_favorite"] = is_favorite
     return result
 
 

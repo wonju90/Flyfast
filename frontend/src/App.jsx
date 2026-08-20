@@ -6,6 +6,7 @@ import FlightDetailPage from "./pages/FlightDetailPage";
 import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
 import MyBookingsPage from "./pages/MyBookingsPage";
+import SearchHistoryPage from "./pages/SearchHistoryPage";
 
 export default function App() {
   return (
@@ -19,6 +20,7 @@ export default function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
           <Route path="/bookings" element={<MyBookingsPage />} />
+          <Route path="/search-history" element={<SearchHistoryPage />} />
         </Routes>
       </main>
     </>

@@ -690,6 +690,31 @@ select {
   font-weight: 700;
 }
 
+.route-hero-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.favorite-star-btn {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 1.6rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 0 6px;
+}
+
+.favorite-star-btn:hover {
+  color: white;
+}
+
+.favorite-star-btn.favorite-star-active {
+  color: #ffd54a;
+}
+
 .route-hero-flightno {
   color: rgba(255, 255, 255, 0.85);
   font-weight: 600;
@@ -1076,6 +1101,65 @@ select {
 .booking-no {
   color: #888;
   font-size: 0.85rem;
+}
+
+.search-history-card {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.search-history-card:hover {
+  border-color: var(--accent);
+}
+
+.search-history-route-text {
+  color: var(--navy);
+  font-weight: 700;
+  font-size: 1.05rem;
+  margin: 0 0 2px;
+}
+
+.search-history-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.search-history-actions .favorite-star-btn {
+  color: #ccc;
+  font-size: 1.4rem;
+  padding: 0;
+}
+
+.search-history-actions .favorite-star-btn:hover {
+  color: var(--navy);
+}
+
+.search-history-actions .favorite-star-btn.favorite-star-active {
+  color: #f5b400;
+}
+
+.search-history-delete-btn {
+  background: none;
+  border: none;
+  color: #ccc;
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 4px 6px;
+}
+
+.search-history-delete-btn:hover {
+  color: var(--danger, #d33);
 }
 
 .status-badge {
