@@ -20,7 +20,8 @@ export default function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
           <Route path="/bookings" element={<MyBookingsPage />} />
-          <Route path="/search-history" element={<SearchHistoryPage />} />
+          <Route path="/favorites" element={<SearchHistoryPage mode="favorites" />} />
+          <Route path="/search-history" element={<SearchHistoryPage mode="recent" />} />
         </Routes>
       </main>
     </>
