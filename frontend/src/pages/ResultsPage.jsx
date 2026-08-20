@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { api } from "../api/client";
 import { translateError } from "../api/errorMessages";
+import DateShiftStrip from "../components/DateShiftStrip";
 import { useAirportNames } from "../hooks/useAirportNames";
 import { airportLabel } from "../utils/airport";
 import { getAirlineInfo } from "../utils/airline";
@@ -214,6 +215,13 @@ export default function ResultsPage() {
     setSelectedInbound(bestCombo.inbound.schedule_id);
   }
 
+  function handleDateShift(newDepart, newReturn) {
+    const params = new URLSearchParams(searchParams);
+    params.set("depart", newDepart);
+    if (newReturn) params.set("return", newReturn);
+    navigate(`/results?${params.toString()}`);
+  }
+
   async function toggleFavorite() {
     const next = !result.is_favorite;
     setResult((prev) => ({ ...prev, is_favorite: next }));
@@ -251,6 +259,14 @@ export default function ResultsPage() {
           {searchParams.get("adults")}명
         </p>
       </section>
+
+      <DateShiftStrip
+        origin={searchParams.get("origin")}
+        destination={searchParams.get("destination")}
+        depart={searchParams.get("depart")}
+        returnDate={searchParams.get("return")}
+        onSelect={handleDateShift}
+      />
 
       {isRoundTrip && (
         <p className="hint-text">

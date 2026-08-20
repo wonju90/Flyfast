@@ -975,6 +975,63 @@ select {
   font-weight: 600;
 }
 
+.date-shift-strip {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  margin: 0 0 16px;
+  padding-bottom: 2px;
+}
+
+.date-shift-cell {
+  flex: 1;
+  min-width: 76px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 4px;
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.date-shift-cell:hover:not(.date-shift-disabled) {
+  border-color: var(--accent);
+}
+
+.date-shift-label {
+  font-size: 0.78rem;
+  color: #555;
+  font-weight: 600;
+}
+
+.date-shift-price {
+  font-size: 0.82rem;
+  color: var(--navy);
+  font-weight: 700;
+}
+
+.date-shift-current {
+  border-color: var(--navy);
+  background: var(--navy);
+}
+
+.date-shift-current .date-shift-label,
+.date-shift-current .date-shift-price {
+  color: white;
+}
+
+.date-shift-cheapest:not(.date-shift-current) .date-shift-price {
+  color: var(--success);
+}
+
+.date-shift-disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .flight-list-header {
   display: flex;
   align-items: center;

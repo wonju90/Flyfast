@@ -37,3 +37,21 @@ export function formatDuration(departIso, arrivalIso) {
   if (m === 0) return `${h}시간`;
   return `${h}시간 ${m}분`;
 }
+
+function parseDateStr(dateStr) {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
+export function addDays(dateStr, delta) {
+  const dt = parseDateStr(dateStr);
+  dt.setDate(dt.getDate() + delta);
+  return toDateStr(dt.getFullYear(), dt.getMonth(), dt.getDate());
+}
+
+const WEEKDAY_LABELS = ["일", "월", "화", "수", "목", "금", "토"];
+
+export function formatShortDate(dateStr) {
+  const dt = parseDateStr(dateStr);
+  return `${dt.getMonth() + 1}/${dt.getDate()}(${WEEKDAY_LABELS[dt.getDay()]})`;
+}
