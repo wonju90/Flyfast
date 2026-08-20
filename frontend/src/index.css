@@ -180,7 +180,6 @@ main {
   background: linear-gradient(135deg, var(--navy) 0%, #234876 60%, var(--accent) 100%);
   padding: 56px 16px 88px;
   position: relative;
-  overflow: hidden;
 }
 
 .hero-bg-decoration {
