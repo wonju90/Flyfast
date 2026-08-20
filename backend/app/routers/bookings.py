@@ -343,3 +343,59 @@ def cancel_booking(booking_id: int, current_user_id: int = Depends(get_current_u
         )
 
     return {"booking_id": booking_id, "status": "CANCELLED"}
+
+
+# GET /bookings/me 뒤에 등록한다 — 같은 GET /bookings/{짧은 세그먼트} 형태라
+# 등록 순서에 따른 매칭 혼동을 피하기 위해, 다른 라우터들의 관례(문자열 리터럴 경로를
+# int 경로 파라미터보다 먼저 등록)를 그대로 따른다.
+@router.get("/bookings/{booking_id}")
+def get_booking(booking_id: int, current_user_id: int = Depends(get_current_user_id)):
+    with engine.connect() as conn:
+        booking = conn.execute(
+            text(
+                "SELECT b.id AS booking_id, b.booking_no, b.status, b.user_id, b.schedule_id, "
+                "f.flight_no, f.origin, f.destination, fs.depart_at, fs.arrival_at "
+                "FROM bookings b "
+                "JOIN flight_schedules fs ON fs.id = b.schedule_id "
+                "JOIN flights f ON f.id = fs.flight_id "
+                "WHERE b.id = :id"
+            ),
+            {"id": booking_id},
+        ).mappings().first()
+        if booking is None:
+            raise _not_found(f"booking {booking_id} not found")
+        if booking["user_id"] != current_user_id:
+            raise _forbidden("this booking does not belong to the current user")
+
+        passengers = conn.execute(
+            text(
+                "SELECT p.name, s.seat_no, s.seat_class "
+                "FROM passengers p JOIN seats s ON s.id = p.seat_id "
+                "WHERE p.booking_id = :booking_id"
+            ),
+            {"booking_id": booking_id},
+        ).mappings().all()
+
+        payment = conn.execute(
+            text("SELECT amount, status FROM payments WHERE booking_id = :booking_id"),
+            {"booking_id": booking_id},
+        ).mappings().first()
+
+        # PENDING인 경우 payments 행이 아직 없어 결제할 금액을 confirm_payment와 동일한 방식으로
+        # (좌석 클래스별 fares 합산) 직접 계산해야 화면에 결제 금액을 미리 보여줄 수 있다.
+        amount = sum(get_fare(conn, booking["schedule_id"], p["seat_class"]) for p in passengers)
+
+    return {
+        "booking_id": booking["booking_id"],
+        "booking_no": booking["booking_no"],
+        "status": booking["status"],
+        "flight_no": booking["flight_no"],
+        "origin": booking["origin"],
+        "destination": booking["destination"],
+        "depart_at": booking["depart_at"],
+        "arrival_at": booking["arrival_at"],
+        "passengers": [{"name": p["name"], "seat_no": p["seat_no"]} for p in passengers],
+        "amount": amount,
+        "payment_status": payment["status"] if payment else None,
+        "payment_amount": payment["amount"] if payment else None,
+    }

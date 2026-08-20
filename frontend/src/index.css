@@ -1235,6 +1235,15 @@ select {
   margin-bottom: 12px;
 }
 
+.booking-card-clickable {
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.booking-card-clickable:hover {
+  border-color: var(--accent);
+}
+
 .booking-card-header {
   display: flex;
   justify-content: space-between;

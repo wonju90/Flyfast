@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import { translateError } from "../api/errorMessages";
 import { useAirportNames } from "../hooks/useAirportNames";
@@ -32,6 +32,7 @@ function BookingCardSkeleton() {
 }
 
 export default function MyBookingsPage() {
+  const navigate = useNavigate();
   const [bookings, setBookings] = useState(null);
   const [error, setError] = useState(null);
   const [busyId, setBusyId] = useState(null);
@@ -88,8 +89,23 @@ export default function MyBookingsPage() {
       {bookings &&
         bookings.map((b) => {
           const airline = getAirlineInfo(b.flight_no);
+          const isPending = b.status === "PENDING";
           return (
-            <div key={b.booking_id} className="booking-card">
+            <div
+              key={b.booking_id}
+              className={"booking-card" + (isPending ? " booking-card-clickable" : "")}
+              role={isPending ? "button" : undefined}
+              tabIndex={isPending ? 0 : undefined}
+              onClick={isPending ? () => navigate(`/bookings/${b.booking_id}/pay`) : undefined}
+              onKeyDown={
+                isPending
+                  ? (e) => {
+                      if (e.key === "Enter") navigate(`/bookings/${b.booking_id}/pay`);
+                    }
+                  : undefined
+              }
+            >
+              {isPending && <p className="hint-text">결제하려면 카드를 클릭하세요</p>}
               <div className="booking-card-header">
                 <div className="flight-card-airline">
                   <span className="airline-badge" style={{ background: airline.color }}>
@@ -125,7 +141,10 @@ export default function MyBookingsPage() {
                 <button
                   className="secondary-btn"
                   disabled={busyId === b.booking_id}
-                  onClick={() => handleCancel(b.booking_id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleCancel(b.booking_id);
+                  }}
                 >
                   예약 취소
                 </button>

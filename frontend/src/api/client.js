@@ -156,6 +156,8 @@ export const api = {
 
   myBookings: () => request("/api/v1/bookings/me", { auth: true }),
 
+  getBooking: (bookingId) => request(`/api/v1/bookings/${bookingId}`, { auth: true }),
+
   cancelBooking: (bookingId) =>
     request(`/api/v1/bookings/${bookingId}/cancel`, { method: "PATCH", auth: true }),
 
