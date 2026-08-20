@@ -116,6 +116,9 @@ export const api = {
   searchAirports: (q) =>
     request(`/api/v1/airports${q ? `?q=${encodeURIComponent(q)}` : ""}`),
 
+  popularRoutes: (origin) =>
+    request(`/api/v1/flights/popular-routes?${new URLSearchParams({ origin })}`),
+
   searchFlights: (params) => {
     const query = new URLSearchParams(
       Object.fromEntries(Object.entries(params).filter(([, v]) => v !== undefined && v !== ""))

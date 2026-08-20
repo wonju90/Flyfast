@@ -17,6 +17,7 @@ vi.mock("../api/client", () => ({
     health: vi.fn().mockResolvedValue({ server_ip: "127.0.0.1" }),
     searchAirports: vi.fn().mockResolvedValue({ airports: MOCK_AIRPORTS }),
     priceCalendar: vi.fn().mockResolvedValue({ prices: {} }),
+    popularRoutes: vi.fn().mockResolvedValue({ routes: [] }),
   },
 }));
 

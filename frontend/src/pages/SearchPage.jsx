@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import AirportPicker from "../components/AirportPicker";
 import ApiServerBanner from "../components/ApiServerBanner";
+import PopularRoutes from "../components/PopularRoutes";
 import PriceCalendar from "../components/PriceCalendar";
 import { useAuth } from "../context/AuthContext";
 import { todayStr } from "../utils/dateTime";
@@ -25,6 +26,10 @@ export default function SearchPage() {
   const { user } = useAuth();
   const displayName = user?.name || null;
   const [airports, setAirports] = useState([]);
+  const airportNames = useMemo(
+    () => Object.fromEntries(airports.map((a) => [a.code, a.name])),
+    [airports]
+  );
   const [tripType, setTripType] = useState("oneway"); // "oneway" | "roundtrip"
   const [form, setForm] = useState({
     origin: "ICN",
@@ -311,6 +316,12 @@ export default function SearchPage() {
       </section>
 
       <div className="page">
+        <PopularRoutes
+          origin={form.origin}
+          airportNames={airportNames}
+          onSelect={(code) => update("destination", code)}
+        />
+
         <section className="home-features">
           <div className="feature-item">
             <p className="feature-title">실시간 좌석 선점</p>

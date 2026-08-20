@@ -108,6 +108,30 @@ def _record_search_history(conn, user_id: int, origin, destination, depart_day, 
     return result.lastrowid, False
 
 
+@router.get("/flights/popular-routes")
+def popular_routes(origin: str = Query("ICN"), limit: int = Query(8, ge=1, le=20)):
+    origin = origin.strip().upper()
+
+    with engine.connect() as conn:
+        rows = conn.execute(
+            text(
+                """
+                SELECT f.destination, MIN(fr.amount) AS min_price
+                FROM flights f
+                JOIN flight_schedules fs ON fs.flight_id = f.id
+                JOIN fares fr ON fr.schedule_id = fs.id
+                WHERE f.origin = :origin
+                GROUP BY f.destination
+                ORDER BY min_price ASC
+                LIMIT :limit
+                """
+            ),
+            {"origin": origin, "limit": limit},
+        ).mappings().all()
+
+    return {"origin": origin, "routes": [dict(row) for row in rows]}
+
+
 @router.get("/flights/search")
 def search_flights(
     origin: str = Query(...),

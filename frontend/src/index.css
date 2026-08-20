@@ -203,6 +203,45 @@ main {
   box-shadow: 0 16px 32px rgba(15, 30, 60, 0.18);
 }
 
+.popular-routes {
+  margin-top: 32px;
+}
+
+.popular-routes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.popular-route-card {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.popular-route-card:hover {
+  border-color: var(--accent);
+  box-shadow: 0 4px 12px rgba(15, 30, 60, 0.08);
+}
+
+.popular-route-city {
+  color: var(--navy);
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.popular-route-price {
+  color: var(--accent);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
 .home-features {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
