@@ -179,9 +179,20 @@ main {
 .hero {
   background: linear-gradient(135deg, var(--navy) 0%, #234876 60%, var(--accent) 100%);
   padding: 56px 16px 88px;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-bg-decoration {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
 }
 
 .hero-inner {
+  position: relative;
   max-width: 720px;
   margin: 0 auto;
 }
@@ -209,7 +220,7 @@ main {
 
 .popular-routes-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
   gap: 12px;
 }
 
@@ -217,17 +228,34 @@ main {
   background: white;
   border: 1px solid var(--border);
   border-radius: 10px;
-  padding: 14px 16px;
+  padding: 12px 14px;
   text-align: left;
   cursor: pointer;
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  align-items: center;
+  gap: 12px;
 }
 
 .popular-route-card:hover {
   border-color: var(--accent);
   box-shadow: 0 4px 12px rgba(15, 30, 60, 0.08);
+}
+
+.popular-route-thumb {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+}
+
+.popular-route-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .popular-route-city {
@@ -335,6 +363,16 @@ label {
   flex-direction: row;
   align-items: center;
   gap: 8px;
+}
+
+.field-label-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.field-icon {
+  font-size: 0.95em;
 }
 
 input,

@@ -15,7 +15,7 @@ function groupByContinent(airports) {
   return continents.map((continent) => ({ continent, airports: grouped[continent] }));
 }
 
-export default function AirportPicker({ label, value, airports, onSelect, placeholder }) {
+export default function AirportPicker({ label, icon, value, airports, onSelect, placeholder }) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef(null);
 
@@ -36,7 +36,10 @@ export default function AirportPicker({ label, value, airports, onSelect, placeh
   return (
     <div className="airport-field" ref={wrapRef}>
       <label>
-        {label}
+        <span className="field-label-text">
+          {icon && <span className="field-icon" aria-hidden="true">{icon}</span>}
+          {label}
+        </span>
         <button type="button" className="date-trigger" onClick={() => setOpen((prev) => !prev)}>
           {selected ? selected.name : value || placeholder}
         </button>

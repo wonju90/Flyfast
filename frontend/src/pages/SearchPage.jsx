@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import AirportPicker from "../components/AirportPicker";
 import ApiServerBanner from "../components/ApiServerBanner";
+import HeroBackground from "../components/HeroBackground";
 import PopularRoutes from "../components/PopularRoutes";
 import PriceCalendar from "../components/PriceCalendar";
 import { useAuth } from "../context/AuthContext";
@@ -139,6 +140,7 @@ export default function SearchPage() {
   return (
     <div className="page-home">
       <section className="hero">
+        <HeroBackground />
         <div className="hero-inner">
           <h1 className="hero-title">
             {displayName ? `${displayName}님, 어디로 떠나볼까요?` : "어디로 떠나볼까요?"}
@@ -167,6 +169,7 @@ export default function SearchPage() {
             <div className="search-row">
               <AirportPicker
                 label="출발지"
+                icon="🛫"
                 value={form.origin}
                 airports={airports}
                 onSelect={(code) => update("origin", code)}
@@ -182,6 +185,7 @@ export default function SearchPage() {
               </button>
               <AirportPicker
                 label="도착지"
+                icon="🛬"
                 value={form.destination}
                 airports={airports}
                 onSelect={(code) => update("destination", code)}
@@ -192,7 +196,10 @@ export default function SearchPage() {
             <div className="search-row">
               {tripType === "oneway" ? (
                 <label>
-                  출발일
+                  <span className="field-label-text">
+                    <span className="field-icon" aria-hidden="true">📅</span>
+                    출발일
+                  </span>
                   <div className="date-field" ref={departFieldRef}>
                     <button
                       type="button"
@@ -219,13 +226,19 @@ export default function SearchPage() {
                 <div className="date-field date-field-dual" ref={departFieldRef}>
                   <div className="dual-date-triggers">
                     <label>
-                      출발일
+                      <span className="field-label-text">
+                        <span className="field-icon" aria-hidden="true">📅</span>
+                        출발일
+                      </span>
                       <button type="button" className="date-trigger" onClick={() => setCalendarOpen(true)}>
                         {form.depart || "날짜 선택"}
                       </button>
                     </label>
                     <label>
-                      귀국일
+                      <span className="field-label-text">
+                        <span className="field-icon" aria-hidden="true">📅</span>
+                        귀국일
+                      </span>
                       <button type="button" className="date-trigger" onClick={() => setCalendarOpen(true)}>
                         {form.returnDate || "날짜 선택"}
                       </button>
@@ -287,7 +300,10 @@ export default function SearchPage() {
 
             <div className="search-row">
               <label>
-                인원
+                <span className="field-label-text">
+                  <span className="field-icon" aria-hidden="true">🧑</span>
+                  인원
+                </span>
                 <input
                   type="number"
                   min="1"
