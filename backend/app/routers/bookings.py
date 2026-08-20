@@ -264,7 +264,7 @@ _MY_BOOKINGS_SQL = text(
     LEFT JOIN passengers p ON p.booking_id = b.id
     LEFT JOIN seats s ON s.id = p.seat_id
     LEFT JOIN payments pay ON pay.booking_id = b.id
-    WHERE b.user_id = :user_id
+    WHERE b.user_id = :user_id AND b.status != 'CANCELLED'
     ORDER BY b.id DESC, p.id ASC
     """
 )

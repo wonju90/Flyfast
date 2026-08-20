@@ -10,7 +10,6 @@ import { formatTime } from "../utils/dateTime";
 const STATUS_LABEL = {
   PENDING: "결제 대기",
   CONFIRMED: "확정",
-  CANCELLED: "취소됨",
 };
 
 function BookingCardSkeleton() {
@@ -137,18 +136,16 @@ export default function MyBookingsPage() {
                   {b.payment_amount != null && `· ${b.payment_amount.toLocaleString()}원`}
                 </p>
               )}
-              {b.status !== "CANCELLED" && (
-                <button
-                  className="secondary-btn"
-                  disabled={busyId === b.booking_id}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleCancel(b.booking_id);
-                  }}
-                >
-                  예약 취소
-                </button>
-              )}
+              <button
+                className="secondary-btn"
+                disabled={busyId === b.booking_id}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleCancel(b.booking_id);
+                }}
+              >
+                예약 취소
+              </button>
             </div>
           );
         })}
