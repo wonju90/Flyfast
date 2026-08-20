@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { api } from "../api/client";
 import { translateError } from "../api/errorMessages";
@@ -93,6 +93,13 @@ function FlightCardSkeleton() {
       </div>
     </div>
   );
+}
+
+function cheapestFlight(flights) {
+  if (!flights) return null;
+  const candidates = flights.filter((f) => f.remaining_seats > 0 && f.from_price != null);
+  if (candidates.length === 0) return null;
+  return candidates.reduce((best, f) => (f.from_price < best.from_price ? f : best));
 }
 
 function FlightListSkeleton({ title }) {
@@ -194,6 +201,19 @@ export default function ResultsPage() {
     navigate(`/flights/${selectedOutbound}?returnScheduleId=${selectedInbound}&adults=${adults}`);
   }
 
+  const bestCombo = useMemo(() => {
+    if (!result || !isRoundTrip) return null;
+    const outbound = cheapestFlight(result.outbound);
+    const inbound = cheapestFlight(result.inbound);
+    if (!outbound || !inbound) return null;
+    return { outbound, inbound, total: outbound.from_price + inbound.from_price };
+  }, [result, isRoundTrip]);
+
+  function selectBestCombo() {
+    setSelectedOutbound(bestCombo.outbound.schedule_id);
+    setSelectedInbound(bestCombo.inbound.schedule_id);
+  }
+
   async function toggleFavorite() {
     const next = !result.is_favorite;
     setResult((prev) => ({ ...prev, is_favorite: next }));
@@ -248,6 +268,13 @@ export default function ResultsPage() {
 
       {result && (
         <>
+          {bestCombo && (
+            <button type="button" className="best-combo-btn" onClick={selectBestCombo}>
+              💡 최저가 조합 {bestCombo.outbound.flight_no} {formatClock(bestCombo.outbound.depart_at)} 출발 +{" "}
+              {bestCombo.inbound.flight_no} {formatClock(bestCombo.inbound.depart_at)} 출발 ·{" "}
+              <strong>총 {bestCombo.total.toLocaleString()}원</strong>
+            </button>
+          )}
           <FlightList
             title="가는 편"
             flights={result.outbound}
