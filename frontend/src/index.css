@@ -1186,6 +1186,17 @@ select {
   color: #bbb;
 }
 
+.mock-card-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mock-card-form input {
+  max-width: 260px;
+  letter-spacing: 0.04em;
+}
+
 .payment-amount {
   font-size: 1.2rem;
   font-weight: bold;

@@ -11,6 +11,15 @@ import { CABIN_LABELS, groupSeatsForMap } from "../utils/seatMap";
 
 const HOLD_SECONDS = 600;
 
+// Mock 결제 — 실제 PG 연동 없이, Stripe 테스트카드 방식처럼 정해진 카드번호로 성공/실패를
+// 재현한다. 0000...은 항상 실패, 그 외 16자리 숫자는 전부 성공 처리한다.
+const TEST_CARD_FAIL = "0000000000000000";
+
+function formatCardNumber(value) {
+  const digits = value.replace(/\D/g, "").slice(0, 16);
+  return digits.replace(/(.{4})/g, "$1 ").trim();
+}
+
 export default function FlightDetailPage() {
   const { scheduleId } = useParams();
   const { user } = useAuth();
@@ -32,6 +41,8 @@ export default function FlightDetailPage() {
   const [booking, setBooking] = useState(null);
   const [paymentResult, setPaymentResult] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [cardNumber, setCardNumber] = useState("");
+  const [cardError, setCardError] = useState(null);
 
   const loadFlight = useCallback(() => {
     api
@@ -55,6 +66,8 @@ export default function FlightDetailPage() {
     setPassengerNames({});
     setBooking(null);
     setPaymentResult(null);
+    setCardNumber("");
+    setCardError(null);
   }, [scheduleId]);
 
   useEffect(() => {
@@ -209,6 +222,17 @@ export default function FlightDetailPage() {
     } finally {
       setBusy(false);
     }
+  }
+
+  function handleCardSubmit(e) {
+    e.preventDefault();
+    const digits = cardNumber.replace(/\D/g, "");
+    if (digits.length !== 16) {
+      setCardError("카드번호 16자리를 입력해주세요.");
+      return;
+    }
+    setCardError(null);
+    handlePay(digits === TEST_CARD_FAIL ? "fail" : "success");
   }
 
   if (error && !flight) {
@@ -381,17 +405,31 @@ export default function FlightDetailPage() {
           </p>
           <p className="payment-amount">결제 금액: {formatWon(booking.amount)}</p>
           <p className="hint-text">
-            요금은 좌석 클래스 기준으로 서버가 계산한 금액입니다. 결제는 Mock 처리입니다 — 실제 PG
-            연동 없이 성공/실패를 시뮬레이션합니다.
+            요금은 좌석 클래스 기준으로 서버가 계산한 금액입니다. 실제 PG 연동 없이 Mock으로
+            처리되며, 아래 테스트 카드번호로 성공/실패를 재현할 수 있습니다.
           </p>
-          <div className="button-row">
-            <button className="primary-btn" disabled={busy} onClick={() => handlePay("success")}>
-              결제 성공 시뮬레이션
+          <form className="mock-card-form" onSubmit={handleCardSubmit}>
+            <label>
+              카드번호
+              <input
+                inputMode="numeric"
+                placeholder="4242 4242 4242 4242"
+                value={formatCardNumber(cardNumber)}
+                onChange={(e) => {
+                  setCardError(null);
+                  setCardNumber(e.target.value);
+                }}
+              />
+            </label>
+            <p className="hint-text">
+              테스트 카드: <strong>4242 4242 4242 4242</strong>(성공 처리되는 임의의 16자리) ·{" "}
+              <strong>0000 0000 0000 0000</strong>(실패 재현용)
+            </p>
+            {cardError && <p className="error-text">{cardError}</p>}
+            <button type="submit" className="primary-btn" disabled={busy}>
+              결제하기
             </button>
-            <button className="secondary-btn" disabled={busy} onClick={() => handlePay("fail")}>
-              결제 실패 시뮬레이션
-            </button>
-          </div>
+          </form>
           {paymentResult && paymentResult.payment_status === "FAILED" && (
             <p className="error-text">결제 실패 — 선점이 유지되는 동안 다시 시도할 수 있습니다.</p>
           )}
