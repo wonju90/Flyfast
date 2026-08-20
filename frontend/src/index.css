@@ -1014,11 +1014,21 @@ select {
   font-weight: 600;
 }
 
+.date-shift-group {
+  margin: 0 0 12px;
+}
+
+.date-shift-group-label {
+  margin: 0 0 6px;
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 0.82rem;
+}
+
 .date-shift-strip {
   display: flex;
   gap: 8px;
   overflow-x: auto;
-  margin: 0 0 16px;
   padding-bottom: 2px;
 }
 

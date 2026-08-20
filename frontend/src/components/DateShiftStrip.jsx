@@ -5,15 +5,46 @@ import { formatManwon } from "../utils/price";
 
 const OFFSETS = [-3, -2, -1, 0, 1, 2, 3];
 
-// 왕복이면 가는날을 옮길 때 여행 기간(오는날-가는날)을 그대로 유지한 채 오는날도 같이 옮겨서,
-// 옮긴 날짜 조합의 왕복 총액(가는 편+오는 편 각각의 그 날짜 최저가 합)을 보여준다.
+function cheapestTotal(cells) {
+  const totals = cells.filter((c) => !c.disabled).map((c) => c.total);
+  return totals.length > 0 ? Math.min(...totals) : null;
+}
+
+function DateShiftRow({ label, cells, onSelect }) {
+  const minTotal = cheapestTotal(cells);
+
+  return (
+    <div className="date-shift-group">
+      {label && <p className="date-shift-group-label">{label}</p>}
+      <div className="date-shift-strip">
+        {cells.map((c) => (
+          <button
+            key={c.offset}
+            type="button"
+            className={
+              "date-shift-cell" +
+              (c.offset === 0 ? " date-shift-current" : "") +
+              (c.disabled ? " date-shift-disabled" : "") +
+              (!c.disabled && c.total === minTotal ? " date-shift-cheapest" : "")
+            }
+            disabled={c.disabled}
+            onClick={() => onSelect(c.date)}
+          >
+            <span className="date-shift-label">{formatShortDate(c.date)}</span>
+            <span className="date-shift-price">{c.total != null ? `${formatManwon(c.total)}원` : "-"}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// 왕복이면 가는날/오는날을 각각 독립적으로 옮길 수 있게 두 줄로 보여준다 — 가는날 스트립은
+// 오는날을 고정한 채 가는날만, 오는날 스트립은 가는날을 고정한 채 오는날만 바꿔서, 여행
+// 기간 자체도 늘리거나 줄일 수 있다 (기존처럼 기간을 고정해 통째로 미는 방식이 아님).
 export default function DateShiftStrip({ origin, destination, depart, returnDate, onSelect }) {
   const [outboundPrices, setOutboundPrices] = useState({});
   const [inboundPrices, setInboundPrices] = useState({});
-
-  const tripDuration = returnDate
-    ? Math.round((new Date(returnDate) - new Date(depart)) / 86400000)
-    : null;
 
   useEffect(() => {
     api
@@ -40,38 +71,38 @@ export default function DateShiftStrip({ origin, destination, depart, returnDate
 
   const today = todayStr();
 
-  const cells = OFFSETS.map((offset) => {
+  if (!returnDate) {
+    const cells = OFFSETS.map((offset) => {
+      const date = addDays(depart, offset);
+      const total = outboundPrices[date];
+      const disabled = date < today || total == null;
+      return { offset, date, total, disabled };
+    });
+    return <DateShiftRow cells={cells} onSelect={(date) => onSelect(date, null)} />;
+  }
+
+  const departCells = OFFSETS.map((offset) => {
     const date = addDays(depart, offset);
-    const shiftedReturn = tripDuration != null ? addDays(date, tripDuration) : null;
+    const invalidOrder = date < today || date >= returnDate;
     const outPrice = outboundPrices[date];
-    const inPrice = shiftedReturn ? inboundPrices[shiftedReturn] : null;
-    const total = shiftedReturn ? (outPrice != null && inPrice != null ? outPrice + inPrice : null) : outPrice;
-    const disabled = date < today || total == null;
-    return { offset, date, returnDate: shiftedReturn, total, disabled };
+    const inPrice = inboundPrices[returnDate];
+    const total = !invalidOrder && outPrice != null && inPrice != null ? outPrice + inPrice : null;
+    return { offset, date, total, disabled: invalidOrder || total == null };
   });
 
-  const validTotals = cells.filter((c) => !c.disabled).map((c) => c.total);
-  const minTotal = validTotals.length > 0 ? Math.min(...validTotals) : null;
+  const returnCells = OFFSETS.map((offset) => {
+    const date = addDays(returnDate, offset);
+    const invalidOrder = date <= depart;
+    const outPrice = outboundPrices[depart];
+    const inPrice = inboundPrices[date];
+    const total = !invalidOrder && outPrice != null && inPrice != null ? outPrice + inPrice : null;
+    return { offset, date, total, disabled: invalidOrder || total == null };
+  });
 
   return (
-    <div className="date-shift-strip">
-      {cells.map((c) => (
-        <button
-          key={c.offset}
-          type="button"
-          className={
-            "date-shift-cell" +
-            (c.offset === 0 ? " date-shift-current" : "") +
-            (c.disabled ? " date-shift-disabled" : "") +
-            (!c.disabled && c.total === minTotal ? " date-shift-cheapest" : "")
-          }
-          disabled={c.disabled}
-          onClick={() => onSelect(c.date, c.returnDate)}
-        >
-          <span className="date-shift-label">{formatShortDate(c.date)}</span>
-          <span className="date-shift-price">{c.total != null ? `${formatManwon(c.total)}원` : "-"}</span>
-        </button>
-      ))}
-    </div>
+    <>
+      <DateShiftRow label="가는날" cells={departCells} onSelect={(date) => onSelect(date, returnDate)} />
+      <DateShiftRow label="오는날" cells={returnCells} onSelect={(date) => onSelect(depart, date)} />
+    </>
   );
 }
