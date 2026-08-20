@@ -5,7 +5,7 @@ import { translateError } from "../api/errorMessages";
 import { getAirlineInfo } from "../utils/airline";
 import { formatClock, formatDuration } from "../utils/dateTime";
 
-function FlightCard({ f, mode, isSelected, onSelect, adults }) {
+function FlightCard({ f, mode, isSelected, onSelect, adults, isCheapest }) {
   const airline = getAirlineInfo(f.flight_no);
   const isFull = f.remaining_seats === 0;
   const isLow = !isFull && f.remaining_seats < 10;
@@ -41,6 +41,7 @@ function FlightCard({ f, mode, isSelected, onSelect, adults }) {
       <div className="flight-card-price-col">
         {isFull && <span className="badge-full">매진</span>}
         {isLow && <span className="badge-low">{f.remaining_seats}석 남음</span>}
+        {isCheapest && !isFull && <span className="badge-cheapest">최저가</span>}
         {f.from_price != null && (
           <span className="flight-card-price">
             {f.from_price.toLocaleString()}원<small>부터</small>
@@ -104,11 +105,39 @@ function FlightListSkeleton({ title }) {
 }
 
 function FlightList({ title, flights, mode, selectedId, onSelect, adults }) {
+  const [sortBy, setSortBy] = useState("time"); // "time" | "price"
+
   if (!flights) return null;
+
+  const pricedFlights = flights.filter((f) => f.from_price != null);
+  const cheapestPrice = pricedFlights.length > 1 ? Math.min(...pricedFlights.map((f) => f.from_price)) : null;
+
+  const displayFlights =
+    sortBy === "price" ? [...flights].sort((a, b) => (a.from_price ?? Infinity) - (b.from_price ?? Infinity)) : flights;
 
   return (
     <section className="flight-list">
-      <h2 className="section-title">{title}</h2>
+      <div className="flight-list-header">
+        <h2 className="section-title">{title}</h2>
+        {flights.length > 1 && (
+          <div className="trip-type-toggle" role="group" aria-label="정렬 기준">
+            <button
+              type="button"
+              className={sortBy === "time" ? "trip-type-btn active" : "trip-type-btn"}
+              onClick={() => setSortBy("time")}
+            >
+              출발시간순
+            </button>
+            <button
+              type="button"
+              className={sortBy === "price" ? "trip-type-btn active" : "trip-type-btn"}
+              onClick={() => setSortBy("price")}
+            >
+              가격낮은순
+            </button>
+          </div>
+        )}
+      </div>
       {flights.length === 0 ? (
         <div className="empty-state">
           <p>해당 조건의 항공편이 없습니다.</p>
@@ -118,7 +147,7 @@ function FlightList({ title, flights, mode, selectedId, onSelect, adults }) {
           </Link>
         </div>
       ) : (
-        flights.map((f) => (
+        displayFlights.map((f) => (
           <FlightCard
             key={f.schedule_id}
             f={f}
@@ -126,6 +155,7 @@ function FlightList({ title, flights, mode, selectedId, onSelect, adults }) {
             isSelected={selectedId === f.schedule_id}
             onSelect={onSelect}
             adults={adults}
+            isCheapest={cheapestPrice != null && f.from_price === cheapestPrice}
           />
         ))
       )}

@@ -557,6 +557,28 @@ select {
   color: var(--navy);
 }
 
+.best-combo-btn {
+  display: block;
+  width: 100%;
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  background: #e8f5e9;
+  border: 1px solid #b6ddb8;
+  border-radius: 8px;
+  color: var(--success);
+  font-size: 0.85rem;
+  text-align: center;
+  cursor: pointer;
+}
+
+.best-combo-btn:hover {
+  background: #d9edda;
+}
+
+.best-combo-btn strong {
+  color: var(--success);
+}
+
 .dual-month-grids {
   display: flex;
   gap: 16px;
@@ -942,6 +964,28 @@ select {
   padding: 2px 8px;
   font-size: 0.75rem;
   font-weight: 600;
+}
+
+.badge-cheapest {
+  color: var(--success);
+  background: #e8f5e9;
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.flight-list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.flight-list-header .section-title {
+  margin-bottom: 0;
 }
 
 .seat-map {

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import AirportPicker from "../components/AirportPicker";
@@ -6,6 +6,19 @@ import ApiServerBanner from "../components/ApiServerBanner";
 import PriceCalendar from "../components/PriceCalendar";
 import { useAuth } from "../context/AuthContext";
 import { todayStr } from "../utils/dateTime";
+import { formatManwon } from "../utils/price";
+
+function cheapestCombo(departPrices, returnPrices) {
+  let best = null;
+  for (const [d, dPrice] of Object.entries(departPrices)) {
+    for (const [r, rPrice] of Object.entries(returnPrices)) {
+      if (r <= d) continue;
+      const total = dPrice + rPrice;
+      if (!best || total < best.total) best = { depart: d, return: r, total };
+    }
+  }
+  return best;
+}
 
 export default function SearchPage() {
   const navigate = useNavigate();
@@ -23,7 +36,14 @@ export default function SearchPage() {
   });
   const [error, setError] = useState(null);
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [departPrices, setDepartPrices] = useState({});
+  const [returnPrices, setReturnPrices] = useState({});
   const departFieldRef = useRef(null);
+
+  const bestCombo = useMemo(
+    () => cheapestCombo(departPrices, returnPrices),
+    [departPrices, returnPrices]
+  );
 
   useEffect(() => {
     if (!calendarOpen) return undefined;
@@ -212,6 +232,19 @@ export default function SearchPage() {
                         가는날 <strong>{form.depart || "미선택"}</strong> · 오는날{" "}
                         <strong>{form.returnDate || "미선택"}</strong>
                       </p>
+                      {bestCombo && (
+                        <button
+                          type="button"
+                          className="best-combo-btn"
+                          onClick={() => {
+                            updateDepart(bestCombo.depart);
+                            update("returnDate", bestCombo.return);
+                          }}
+                        >
+                          💡 최저가 조합 {bestCombo.depart} → {bestCombo.return} ·{" "}
+                          <strong>{formatManwon(bestCombo.total)}원</strong>
+                        </button>
+                      )}
                       <div className="dual-month-grids">
                         <PriceCalendar
                           variant="inline"
@@ -221,6 +254,7 @@ export default function SearchPage() {
                           origin={form.origin}
                           destination={form.destination}
                           onSelect={(d) => updateDepart(d)}
+                          onPricesLoaded={setDepartPrices}
                         />
                         <PriceCalendar
                           variant="inline"
@@ -230,6 +264,7 @@ export default function SearchPage() {
                           origin={form.destination}
                           destination={form.origin}
                           onSelect={(d) => update("returnDate", d)}
+                          onPricesLoaded={setReturnPrices}
                         />
                       </div>
                       <button

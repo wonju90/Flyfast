@@ -7,7 +7,16 @@ const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
 // variant="popover"(기본): 출발일 트리거 아래 단독으로 뜨는 팝오버(1단계, 편도).
 // variant="inline": 왕복에서 가는날/오는날 달력 두 개를 나란히 배치할 때 쓰는 형태(2단계) — 위치 지정 없이 내용만 렌더링.
-export default function PriceCalendar({ value, minDate, origin, destination, onSelect, variant = "popover", label }) {
+export default function PriceCalendar({
+  value,
+  minDate,
+  origin,
+  destination,
+  onSelect,
+  variant = "popover",
+  label,
+  onPricesLoaded,
+}) {
   const initial = new Date(value || minDate);
   const [viewYear, setViewYear] = useState(initial.getFullYear());
   const [viewMonth, setViewMonth] = useState(initial.getMonth());
@@ -31,6 +40,10 @@ export default function PriceCalendar({ value, minDate, origin, destination, onS
       .catch(() => setPrices({}))
       .finally(() => setLoading(false));
   }, [hasRoute, origin, destination, viewYear, viewMonth]);
+
+  useEffect(() => {
+    onPricesLoaded?.(prices);
+  }, [prices, onPricesLoaded]);
 
   function prevMonth() {
     if (viewMonth === 0) {
