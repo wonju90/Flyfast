@@ -1,0 +1,7480 @@
+-- 스팟-투-스팟(인천 경유 없이 직항) 노선 3개 추가 + KE002(NRT->ICN) 이코노미석 누락 보강
+-- 적용: 이 커밋과 함께 프로덕션 DB에 직접 반영 완료 (별도 재실행 불필요)
+
+-- 1) 신규 노선 등록
+INSERT INTO flights (flight_no, origin, destination) VALUES
+  ('KE951', 'NRT', 'CDG'),
+  ('KE952', 'CDG', 'NRT'),
+  ('OZ761', 'HKG', 'BKK'),
+  ('OZ762', 'BKK', 'HKG'),
+  ('KE271', 'LAX', 'JFK'),
+  ('KE272', 'JFK', 'LAX');
+
+-- 2) KE002 (NRT->ICN) 기존 스케줄에 누락된 ECONOMY 좌석/운임 보강
+INSERT INTO seats (schedule_id, seat_no, seat_class, status)
+SELECT fs.id, '2A', 'ECONOMY', 'AVAILABLE'
+FROM flight_schedules fs JOIN flights f ON f.id = fs.flight_id
+WHERE f.flight_no = 'KE002'
+  AND NOT EXISTS (SELECT 1 FROM seats s WHERE s.schedule_id = fs.id AND s.seat_no = '2A');
+INSERT INTO seats (schedule_id, seat_no, seat_class, status)
+SELECT fs.id, '2B', 'ECONOMY', 'AVAILABLE'
+FROM flight_schedules fs JOIN flights f ON f.id = fs.flight_id
+WHERE f.flight_no = 'KE002'
+  AND NOT EXISTS (SELECT 1 FROM seats s WHERE s.schedule_id = fs.id AND s.seat_no = '2B');
+INSERT INTO seats (schedule_id, seat_no, seat_class, status)
+SELECT fs.id, '2C', 'ECONOMY', 'AVAILABLE'
+FROM flight_schedules fs JOIN flights f ON f.id = fs.flight_id
+WHERE f.flight_no = 'KE002'
+  AND NOT EXISTS (SELECT 1 FROM seats s WHERE s.schedule_id = fs.id AND s.seat_no = '2C');
+INSERT INTO fares (schedule_id, seat_class, amount)
+SELECT fs.id, 'ECONOMY', 300000 + FLOOR(RAND() * 60000)
+FROM flight_schedules fs JOIN flights f ON f.id = fs.flight_id
+WHERE f.flight_no = 'KE002'
+  AND NOT EXISTS (SELECT 1 FROM fares fr WHERE fr.schedule_id = fs.id AND fr.seat_class = 'ECONOMY');
+
+-- 3) 신규 노선 스케줄/좌석/운임 (60일간 매일 1편)
+-- KE951 NRT -> CDG
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE951'), '2026-08-20 11:00:00', '2026-08-21 00:00:00');
+SET @sc_KE951_20260820 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE951_20260820, '1A', 'FIRST', 'AVAILABLE'),
+  (@sc_KE951_20260820, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE951_20260820, '2A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260820, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260820, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260820, '2D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260820, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260820, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260820, '4C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260820, '5A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260820, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260820, '5C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260820, '6A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260820, '6B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260820, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE951_20260820, 'FIRST', 5751600),
+  (@sc_KE951_20260820, 'BUSINESS', 2981300),
+  (@sc_KE951_20260820, 'ECONOMY', 1113700);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE951'), '2026-08-21 11:00:00', '2026-08-22 00:00:00');
+SET @sc_KE951_20260821 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE951_20260821, '1A', 'FIRST', 'SOLD'),
+  (@sc_KE951_20260821, '1B', 'FIRST', 'SOLD'),
+  (@sc_KE951_20260821, '2A', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20260821, '2B', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20260821, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260821, '2D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260821, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260821, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260821, '4C', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260821, '5A', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260821, '5B', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260821, '5C', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260821, '6A', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260821, '6B', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260821, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE951_20260821, 'FIRST', 6671200),
+  (@sc_KE951_20260821, 'BUSINESS', 2819800),
+  (@sc_KE951_20260821, 'ECONOMY', 996800);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE951'), '2026-08-22 11:00:00', '2026-08-23 00:00:00');
+SET @sc_KE951_20260822 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE951_20260822, '1A', 'FIRST', 'SOLD'),
+  (@sc_KE951_20260822, '1B', 'FIRST', 'SOLD'),
+  (@sc_KE951_20260822, '2A', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20260822, '2B', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20260822, '2C', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20260822, '2D', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20260822, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260822, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260822, '4C', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260822, '5A', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260822, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260822, '5C', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260822, '6A', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260822, '6B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260822, '6C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE951_20260822, 'FIRST', 6382900),
+  (@sc_KE951_20260822, 'BUSINESS', 2447100),
+  (@sc_KE951_20260822, 'ECONOMY', 1051700);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE951'), '2026-08-23 11:00:00', '2026-08-24 00:00:00');
+SET @sc_KE951_20260823 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE951_20260823, '1A', 'FIRST', 'SOLD'),
+  (@sc_KE951_20260823, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE951_20260823, '2A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260823, '2B', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20260823, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260823, '2D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260823, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260823, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260823, '4C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260823, '5A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260823, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260823, '5C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260823, '6A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260823, '6B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260823, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE951_20260823, 'FIRST', 6447700),
+  (@sc_KE951_20260823, 'BUSINESS', 2882100),
+  (@sc_KE951_20260823, 'ECONOMY', 1074600);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE951'), '2026-08-24 11:00:00', '2026-08-25 00:00:00');
+SET @sc_KE951_20260824 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE951_20260824, '1A', 'FIRST', 'SOLD'),
+  (@sc_KE951_20260824, '1B', 'FIRST', 'SOLD'),
+  (@sc_KE951_20260824, '2A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260824, '2B', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20260824, '2C', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20260824, '2D', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20260824, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260824, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260824, '4C', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260824, '5A', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260824, '5B', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260824, '5C', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260824, '6A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260824, '6B', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260824, '6C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE951_20260824, 'FIRST', 6372500),
+  (@sc_KE951_20260824, 'BUSINESS', 2987700),
+  (@sc_KE951_20260824, 'ECONOMY', 1212200);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE951'), '2026-08-25 11:00:00', '2026-08-26 00:00:00');
+SET @sc_KE951_20260825 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE951_20260825, '1A', 'FIRST', 'AVAILABLE'),
+  (@sc_KE951_20260825, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE951_20260825, '2A', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20260825, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260825, '2C', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20260825, '2D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260825, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260825, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260825, '4C', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260825, '5A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260825, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260825, '5C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260825, '6A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260825, '6B', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260825, '6C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE951_20260825, 'FIRST', 6352600),
+  (@sc_KE951_20260825, 'BUSINESS', 2495200),
+  (@sc_KE951_20260825, 'ECONOMY', 1195600);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE951'), '2026-08-26 11:00:00', '2026-08-27 00:00:00');
+SET @sc_KE951_20260826 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE951_20260826, '1A', 'FIRST', 'AVAILABLE'),
+  (@sc_KE951_20260826, '1B', 'FIRST', 'SOLD'),
+  (@sc_KE951_20260826, '2A', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20260826, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260826, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260826, '2D', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20260826, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260826, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260826, '4C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260826, '5A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260826, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260826, '5C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260826, '6A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260826, '6B', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260826, '6C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE951_20260826, 'FIRST', 6483800),
+  (@sc_KE951_20260826, 'BUSINESS', 2949400),
+  (@sc_KE951_20260826, 'ECONOMY', 1251200);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE951'), '2026-08-27 11:00:00', '2026-08-28 00:00:00');
+SET @sc_KE951_20260827 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE951_20260827, '1A', 'FIRST', 'AVAILABLE'),
+  (@sc_KE951_20260827, '1B', 'FIRST', 'SOLD'),
+  (@sc_KE951_20260827, '2A', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20260827, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260827, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260827, '2D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260827, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260827, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260827, '4C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260827, '5A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260827, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260827, '5C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260827, '6A', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260827, '6B', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260827, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE951_20260827, 'FIRST', 6386000),
+  (@sc_KE951_20260827, 'BUSINESS', 2562800),
+  (@sc_KE951_20260827, 'ECONOMY', 993900);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE951'), '2026-08-28 11:00:00', '2026-08-29 00:00:00');
+SET @sc_KE951_20260828 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE951_20260828, '1A', 'FIRST', 'AVAILABLE'),
+  (@sc_KE951_20260828, '1B', 'FIRST', 'SOLD'),
+  (@sc_KE951_20260828, '2A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260828, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260828, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260828, '2D', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20260828, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260828, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260828, '4C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260828, '5A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260828, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260828, '5C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260828, '6A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260828, '6B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260828, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE951_20260828, 'FIRST', 6385400),
+  (@sc_KE951_20260828, 'BUSINESS', 2722700),
+  (@sc_KE951_20260828, 'ECONOMY', 1082500);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE951'), '2026-08-29 11:00:00', '2026-08-30 00:00:00');
+SET @sc_KE951_20260829 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE951_20260829, '1A', 'FIRST', 'AVAILABLE'),
+  (@sc_KE951_20260829, '1B', 'FIRST', 'SOLD'),
+  (@sc_KE951_20260829, '2A', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20260829, '2B', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20260829, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260829, '2D', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20260829, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260829, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260829, '4C', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260829, '5A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260829, '5B', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260829, '5C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260829, '6A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260829, '6B', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260829, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE951_20260829, 'FIRST', 6797400),
+  (@sc_KE951_20260829, 'BUSINESS', 2778900),
+  (@sc_KE951_20260829, 'ECONOMY', 1253100);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE951'), '2026-08-30 11:00:00', '2026-08-31 00:00:00');
+SET @sc_KE951_20260830 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE951_20260830, '1A', 'FIRST', 'AVAILABLE'),
+  (@sc_KE951_20260830, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE951_20260830, '2A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260830, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260830, '2C', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20260830, '2D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260830, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260830, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260830, '4C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260830, '5A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260830, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260830, '5C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260830, '6A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260830, '6B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260830, '6C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE951_20260830, 'FIRST', 6814700),
+  (@sc_KE951_20260830, 'BUSINESS', 2967800),
+  (@sc_KE951_20260830, 'ECONOMY', 1214400);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE951'), '2026-08-31 11:00:00', '2026-09-01 00:00:00');
+SET @sc_KE951_20260831 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE951_20260831, '1A', 'FIRST', 'SOLD'),
+  (@sc_KE951_20260831, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE951_20260831, '2A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260831, '2B', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20260831, '2C', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20260831, '2D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260831, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260831, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260831, '4C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260831, '5A', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260831, '5B', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260831, '5C', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260831, '6A', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260831, '6B', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260831, '6C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE951_20260831, 'FIRST', 6689800),
+  (@sc_KE951_20260831, 'BUSINESS', 2805200),
+  (@sc_KE951_20260831, 'ECONOMY', 1146200);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE951'), '2026-09-01 11:00:00', '2026-09-02 00:00:00');
+SET @sc_KE951_20260901 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE951_20260901, '1A', 'FIRST', 'AVAILABLE'),
+  (@sc_KE951_20260901, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE951_20260901, '2A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260901, '2B', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20260901, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260901, '2D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260901, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260901, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260901, '4C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260901, '5A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260901, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260901, '5C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260901, '6A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260901, '6B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260901, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE951_20260901, 'FIRST', 6031100),
+  (@sc_KE951_20260901, 'BUSINESS', 2642400),
+  (@sc_KE951_20260901, 'ECONOMY', 1061700);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE951'), '2026-09-02 11:00:00', '2026-09-03 00:00:00');
+SET @sc_KE951_20260902 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE951_20260902, '1A', 'FIRST', 'AVAILABLE'),
+  (@sc_KE951_20260902, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE951_20260902, '2A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260902, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260902, '2C', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20260902, '2D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260902, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260902, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260902, '4C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260902, '5A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260902, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260902, '5C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260902, '6A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260902, '6B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260902, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE951_20260902, 'FIRST', 6533500),
+  (@sc_KE951_20260902, 'BUSINESS', 3054200),
+  (@sc_KE951_20260902, 'ECONOMY', 1076900);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE951'), '2026-09-03 11:00:00', '2026-09-04 00:00:00');
+SET @sc_KE951_20260903 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE951_20260903, '1A', 'FIRST', 'AVAILABLE'),
+  (@sc_KE951_20260903, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE951_20260903, '2A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260903, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260903, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260903, '2D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260903, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260903, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260903, '4C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260903, '5A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260903, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260903, '5C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260903, '6A', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260903, '6B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260903, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE951_20260903, 'FIRST', 7065300),
+  (@sc_KE951_20260903, 'BUSINESS', 2969900),
+  (@sc_KE951_20260903, 'ECONOMY', 1023600);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE951'), '2026-09-04 11:00:00', '2026-09-05 00:00:00');
+SET @sc_KE951_20260904 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE951_20260904, '1A', 'FIRST', 'SOLD'),
+  (@sc_KE951_20260904, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE951_20260904, '2A', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20260904, '2B', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20260904, '2C', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20260904, '2D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260904, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260904, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260904, '4C', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260904, '5A', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260904, '5B', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260904, '5C', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260904, '6A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260904, '6B', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260904, '6C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE951_20260904, 'FIRST', 6131800),
+  (@sc_KE951_20260904, 'BUSINESS', 2689300),
+  (@sc_KE951_20260904, 'ECONOMY', 1055800);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE951'), '2026-09-05 11:00:00', '2026-09-06 00:00:00');
+SET @sc_KE951_20260905 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE951_20260905, '1A', 'FIRST', 'SOLD'),
+  (@sc_KE951_20260905, '1B', 'FIRST', 'SOLD'),
+  (@sc_KE951_20260905, '2A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260905, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260905, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260905, '2D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260905, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260905, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260905, '4C', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260905, '5A', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260905, '5B', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260905, '5C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260905, '6A', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260905, '6B', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260905, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE951_20260905, 'FIRST', 6500200),
+  (@sc_KE951_20260905, 'BUSINESS', 2996700),
+  (@sc_KE951_20260905, 'ECONOMY', 1142100);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE951'), '2026-09-06 11:00:00', '2026-09-07 00:00:00');
+SET @sc_KE951_20260906 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE951_20260906, '1A', 'FIRST', 'AVAILABLE'),
+  (@sc_KE951_20260906, '1B', 'FIRST', 'SOLD'),
+  (@sc_KE951_20260906, '2A', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20260906, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260906, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260906, '2D', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20260906, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260906, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260906, '4C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260906, '5A', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260906, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260906, '5C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260906, '6A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260906, '6B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260906, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE951_20260906, 'FIRST', 6198600),
+  (@sc_KE951_20260906, 'BUSINESS', 3088900),
+  (@sc_KE951_20260906, 'ECONOMY', 1251500);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE951'), '2026-09-07 11:00:00', '2026-09-08 00:00:00');
+SET @sc_KE951_20260907 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE951_20260907, '1A', 'FIRST', 'AVAILABLE'),
+  (@sc_KE951_20260907, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE951_20260907, '2A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260907, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260907, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260907, '2D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260907, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260907, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260907, '4C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260907, '5A', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260907, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260907, '5C', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260907, '6A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260907, '6B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260907, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE951_20260907, 'FIRST', 6874300),
+  (@sc_KE951_20260907, 'BUSINESS', 2904100),
+  (@sc_KE951_20260907, 'ECONOMY', 1208700);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE951'), '2026-09-08 11:00:00', '2026-09-09 00:00:00');
+SET @sc_KE951_20260908 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE951_20260908, '1A', 'FIRST', 'SOLD'),
+  (@sc_KE951_20260908, '1B', 'FIRST', 'SOLD'),
+  (@sc_KE951_20260908, '2A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260908, '2B', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20260908, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260908, '2D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260908, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260908, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260908, '4C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260908, '5A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260908, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260908, '5C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260908, '6A', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260908, '6B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260908, '6C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE951_20260908, 'FIRST', 6578300),
+  (@sc_KE951_20260908, 'BUSINESS', 2536700),
+  (@sc_KE951_20260908, 'ECONOMY', 1129900);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE951'), '2026-09-09 11:00:00', '2026-09-10 00:00:00');
+SET @sc_KE951_20260909 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE951_20260909, '1A', 'FIRST', 'AVAILABLE'),
+  (@sc_KE951_20260909, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE951_20260909, '2A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260909, '2B', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20260909, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260909, '2D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260909, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260909, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260909, '4C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260909, '5A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260909, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260909, '5C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260909, '6A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260909, '6B', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260909, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE951_20260909, 'FIRST', 6324000),
+  (@sc_KE951_20260909, 'BUSINESS', 2715300),
+  (@sc_KE951_20260909, 'ECONOMY', 1213300);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE951'), '2026-09-10 11:00:00', '2026-09-11 00:00:00');
+SET @sc_KE951_20260910 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE951_20260910, '1A', 'FIRST', 'AVAILABLE'),
+  (@sc_KE951_20260910, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE951_20260910, '2A', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20260910, '2B', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20260910, '2C', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20260910, '2D', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20260910, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260910, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260910, '4C', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260910, '5A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260910, '5B', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260910, '5C', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260910, '6A', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260910, '6B', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260910, '6C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE951_20260910, 'FIRST', 5819100),
+  (@sc_KE951_20260910, 'BUSINESS', 2841800),
+  (@sc_KE951_20260910, 'ECONOMY', 1024800);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE951'), '2026-09-11 11:00:00', '2026-09-12 00:00:00');
+SET @sc_KE951_20260911 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE951_20260911, '1A', 'FIRST', 'SOLD'),
+  (@sc_KE951_20260911, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE951_20260911, '2A', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20260911, '2B', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20260911, '2C', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20260911, '2D', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20260911, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260911, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260911, '4C', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260911, '5A', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260911, '5B', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260911, '5C', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260911, '6A', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260911, '6B', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260911, '6C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE951_20260911, 'FIRST', 6787500),
+  (@sc_KE951_20260911, 'BUSINESS', 2489300),
+  (@sc_KE951_20260911, 'ECONOMY', 1126100);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE951'), '2026-09-12 11:00:00', '2026-09-13 00:00:00');
+SET @sc_KE951_20260912 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE951_20260912, '1A', 'FIRST', 'AVAILABLE'),
+  (@sc_KE951_20260912, '1B', 'FIRST', 'SOLD'),
+  (@sc_KE951_20260912, '2A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260912, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260912, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260912, '2D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260912, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260912, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260912, '4C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260912, '5A', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260912, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260912, '5C', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260912, '6A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260912, '6B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260912, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE951_20260912, 'FIRST', 6215000),
+  (@sc_KE951_20260912, 'BUSINESS', 2972200),
+  (@sc_KE951_20260912, 'ECONOMY', 1094900);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE951'), '2026-09-13 11:00:00', '2026-09-14 00:00:00');
+SET @sc_KE951_20260913 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE951_20260913, '1A', 'FIRST', 'AVAILABLE'),
+  (@sc_KE951_20260913, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE951_20260913, '2A', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20260913, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260913, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260913, '2D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260913, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260913, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260913, '4C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260913, '5A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260913, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260913, '5C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260913, '6A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260913, '6B', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260913, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE951_20260913, 'FIRST', 6290000),
+  (@sc_KE951_20260913, 'BUSINESS', 2700800),
+  (@sc_KE951_20260913, 'ECONOMY', 996000);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE951'), '2026-09-14 11:00:00', '2026-09-15 00:00:00');
+SET @sc_KE951_20260914 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE951_20260914, '1A', 'FIRST', 'AVAILABLE'),
+  (@sc_KE951_20260914, '1B', 'FIRST', 'SOLD'),
+  (@sc_KE951_20260914, '2A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260914, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260914, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260914, '2D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260914, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260914, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260914, '4C', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260914, '5A', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260914, '5B', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260914, '5C', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260914, '6A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260914, '6B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260914, '6C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE951_20260914, 'FIRST', 6446300),
+  (@sc_KE951_20260914, 'BUSINESS', 2600200),
+  (@sc_KE951_20260914, 'ECONOMY', 1081900);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE951'), '2026-09-15 11:00:00', '2026-09-16 00:00:00');
+SET @sc_KE951_20260915 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE951_20260915, '1A', 'FIRST', 'SOLD'),
+  (@sc_KE951_20260915, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE951_20260915, '2A', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20260915, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260915, '2C', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20260915, '2D', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20260915, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260915, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260915, '4C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260915, '5A', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260915, '5B', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260915, '5C', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260915, '6A', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260915, '6B', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260915, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE951_20260915, 'FIRST', 5702400),
+  (@sc_KE951_20260915, 'BUSINESS', 2897400),
+  (@sc_KE951_20260915, 'ECONOMY', 1138200);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE951'), '2026-09-16 11:00:00', '2026-09-17 00:00:00');
+SET @sc_KE951_20260916 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE951_20260916, '1A', 'FIRST', 'AVAILABLE'),
+  (@sc_KE951_20260916, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE951_20260916, '2A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260916, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260916, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260916, '2D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260916, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260916, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260916, '4C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260916, '5A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260916, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260916, '5C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260916, '6A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260916, '6B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260916, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE951_20260916, 'FIRST', 6718100),
+  (@sc_KE951_20260916, 'BUSINESS', 3097200),
+  (@sc_KE951_20260916, 'ECONOMY', 1261800);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE951'), '2026-09-17 11:00:00', '2026-09-18 00:00:00');
+SET @sc_KE951_20260917 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE951_20260917, '1A', 'FIRST', 'SOLD'),
+  (@sc_KE951_20260917, '1B', 'FIRST', 'SOLD'),
+  (@sc_KE951_20260917, '2A', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20260917, '2B', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20260917, '2C', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20260917, '2D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260917, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260917, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260917, '4C', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260917, '5A', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260917, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260917, '5C', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260917, '6A', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260917, '6B', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260917, '6C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE951_20260917, 'FIRST', 6885500),
+  (@sc_KE951_20260917, 'BUSINESS', 2700000),
+  (@sc_KE951_20260917, 'ECONOMY', 1050000);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE951'), '2026-09-18 11:00:00', '2026-09-19 00:00:00');
+SET @sc_KE951_20260918 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE951_20260918, '1A', 'FIRST', 'AVAILABLE'),
+  (@sc_KE951_20260918, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE951_20260918, '2A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260918, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260918, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260918, '2D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260918, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260918, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260918, '4C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260918, '5A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260918, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260918, '5C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260918, '6A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260918, '6B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260918, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE951_20260918, 'FIRST', 7112700),
+  (@sc_KE951_20260918, 'BUSINESS', 3012900),
+  (@sc_KE951_20260918, 'ECONOMY', 1037900);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE951'), '2026-09-19 11:00:00', '2026-09-20 00:00:00');
+SET @sc_KE951_20260919 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE951_20260919, '1A', 'FIRST', 'AVAILABLE'),
+  (@sc_KE951_20260919, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE951_20260919, '2A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260919, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260919, '2C', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20260919, '2D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260919, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260919, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260919, '4C', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260919, '5A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260919, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260919, '5C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260919, '6A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260919, '6B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260919, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE951_20260919, 'FIRST', 6337300),
+  (@sc_KE951_20260919, 'BUSINESS', 2807200),
+  (@sc_KE951_20260919, 'ECONOMY', 1221200);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE951'), '2026-09-20 11:00:00', '2026-09-21 00:00:00');
+SET @sc_KE951_20260920 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE951_20260920, '1A', 'FIRST', 'AVAILABLE'),
+  (@sc_KE951_20260920, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE951_20260920, '2A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260920, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260920, '2C', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20260920, '2D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260920, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260920, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260920, '4C', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260920, '5A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260920, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260920, '5C', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260920, '6A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260920, '6B', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260920, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE951_20260920, 'FIRST', 7038500),
+  (@sc_KE951_20260920, 'BUSINESS', 2550800),
+  (@sc_KE951_20260920, 'ECONOMY', 1063600);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE951'), '2026-09-21 11:00:00', '2026-09-22 00:00:00');
+SET @sc_KE951_20260921 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE951_20260921, '1A', 'FIRST', 'SOLD'),
+  (@sc_KE951_20260921, '1B', 'FIRST', 'SOLD'),
+  (@sc_KE951_20260921, '2A', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20260921, '2B', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20260921, '2C', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20260921, '2D', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20260921, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260921, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260921, '4C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260921, '5A', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260921, '5B', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260921, '5C', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260921, '6A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260921, '6B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260921, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE951_20260921, 'FIRST', 5820300),
+  (@sc_KE951_20260921, 'BUSINESS', 2649000),
+  (@sc_KE951_20260921, 'ECONOMY', 1186600);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE951'), '2026-09-22 11:00:00', '2026-09-23 00:00:00');
+SET @sc_KE951_20260922 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE951_20260922, '1A', 'FIRST', 'SOLD'),
+  (@sc_KE951_20260922, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE951_20260922, '2A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260922, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260922, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260922, '2D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260922, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260922, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260922, '4C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260922, '5A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260922, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260922, '5C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260922, '6A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260922, '6B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260922, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE951_20260922, 'FIRST', 7080300),
+  (@sc_KE951_20260922, 'BUSINESS', 2573600),
+  (@sc_KE951_20260922, 'ECONOMY', 1033600);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE951'), '2026-09-23 11:00:00', '2026-09-24 00:00:00');
+SET @sc_KE951_20260923 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE951_20260923, '1A', 'FIRST', 'SOLD'),
+  (@sc_KE951_20260923, '1B', 'FIRST', 'SOLD'),
+  (@sc_KE951_20260923, '2A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260923, '2B', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20260923, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260923, '2D', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20260923, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260923, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260923, '4C', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260923, '5A', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260923, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260923, '5C', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260923, '6A', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260923, '6B', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260923, '6C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE951_20260923, 'FIRST', 6544400),
+  (@sc_KE951_20260923, 'BUSINESS', 2536700),
+  (@sc_KE951_20260923, 'ECONOMY', 1037300);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE951'), '2026-09-24 11:00:00', '2026-09-25 00:00:00');
+SET @sc_KE951_20260924 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE951_20260924, '1A', 'FIRST', 'SOLD'),
+  (@sc_KE951_20260924, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE951_20260924, '2A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260924, '2B', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20260924, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260924, '2D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260924, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260924, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260924, '4C', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260924, '5A', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260924, '5B', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260924, '5C', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260924, '6A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260924, '6B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260924, '6C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE951_20260924, 'FIRST', 5793800),
+  (@sc_KE951_20260924, 'BUSINESS', 2965500),
+  (@sc_KE951_20260924, 'ECONOMY', 1143900);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE951'), '2026-09-25 11:00:00', '2026-09-26 00:00:00');
+SET @sc_KE951_20260925 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE951_20260925, '1A', 'FIRST', 'SOLD'),
+  (@sc_KE951_20260925, '1B', 'FIRST', 'SOLD'),
+  (@sc_KE951_20260925, '2A', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20260925, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260925, '2C', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20260925, '2D', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20260925, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260925, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260925, '4C', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260925, '5A', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260925, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260925, '5C', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260925, '6A', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260925, '6B', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260925, '6C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE951_20260925, 'FIRST', 5637700),
+  (@sc_KE951_20260925, 'BUSINESS', 2828400),
+  (@sc_KE951_20260925, 'ECONOMY', 1009300);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE951'), '2026-09-26 11:00:00', '2026-09-27 00:00:00');
+SET @sc_KE951_20260926 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE951_20260926, '1A', 'FIRST', 'SOLD'),
+  (@sc_KE951_20260926, '1B', 'FIRST', 'SOLD'),
+  (@sc_KE951_20260926, '2A', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20260926, '2B', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20260926, '2C', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20260926, '2D', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20260926, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260926, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260926, '4C', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260926, '5A', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260926, '5B', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260926, '5C', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260926, '6A', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260926, '6B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260926, '6C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE951_20260926, 'FIRST', 5690200),
+  (@sc_KE951_20260926, 'BUSINESS', 2836300),
+  (@sc_KE951_20260926, 'ECONOMY', 1022900);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE951'), '2026-09-27 11:00:00', '2026-09-28 00:00:00');
+SET @sc_KE951_20260927 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE951_20260927, '1A', 'FIRST', 'AVAILABLE'),
+  (@sc_KE951_20260927, '1B', 'FIRST', 'SOLD'),
+  (@sc_KE951_20260927, '2A', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20260927, '2B', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20260927, '2C', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20260927, '2D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260927, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260927, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260927, '4C', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260927, '5A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260927, '5B', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260927, '5C', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260927, '6A', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260927, '6B', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260927, '6C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE951_20260927, 'FIRST', 6492000),
+  (@sc_KE951_20260927, 'BUSINESS', 2828600),
+  (@sc_KE951_20260927, 'ECONOMY', 1122800);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE951'), '2026-09-28 11:00:00', '2026-09-29 00:00:00');
+SET @sc_KE951_20260928 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE951_20260928, '1A', 'FIRST', 'AVAILABLE'),
+  (@sc_KE951_20260928, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE951_20260928, '2A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260928, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260928, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260928, '2D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260928, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260928, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260928, '4C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260928, '5A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260928, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260928, '5C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260928, '6A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260928, '6B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260928, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE951_20260928, 'FIRST', 6151200),
+  (@sc_KE951_20260928, 'BUSINESS', 2576300),
+  (@sc_KE951_20260928, 'ECONOMY', 1010900);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE951'), '2026-09-29 11:00:00', '2026-09-30 00:00:00');
+SET @sc_KE951_20260929 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE951_20260929, '1A', 'FIRST', 'AVAILABLE'),
+  (@sc_KE951_20260929, '1B', 'FIRST', 'SOLD'),
+  (@sc_KE951_20260929, '2A', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20260929, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260929, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260929, '2D', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20260929, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260929, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260929, '4C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260929, '5A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260929, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260929, '5C', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260929, '6A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260929, '6B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260929, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE951_20260929, 'FIRST', 6885300),
+  (@sc_KE951_20260929, 'BUSINESS', 2972100),
+  (@sc_KE951_20260929, 'ECONOMY', 1144600);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE951'), '2026-09-30 11:00:00', '2026-10-01 00:00:00');
+SET @sc_KE951_20260930 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE951_20260930, '1A', 'FIRST', 'SOLD'),
+  (@sc_KE951_20260930, '1B', 'FIRST', 'SOLD'),
+  (@sc_KE951_20260930, '2A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260930, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260930, '2C', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20260930, '2D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20260930, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260930, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260930, '4C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260930, '5A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260930, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260930, '5C', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260930, '6A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20260930, '6B', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20260930, '6C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE951_20260930, 'FIRST', 6590400),
+  (@sc_KE951_20260930, 'BUSINESS', 2618400),
+  (@sc_KE951_20260930, 'ECONOMY', 992000);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE951'), '2026-10-01 11:00:00', '2026-10-02 00:00:00');
+SET @sc_KE951_20261001 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE951_20261001, '1A', 'FIRST', 'SOLD'),
+  (@sc_KE951_20261001, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE951_20261001, '2A', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20261001, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20261001, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20261001, '2D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20261001, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20261001, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261001, '4C', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20261001, '5A', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20261001, '5B', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20261001, '5C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261001, '6A', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20261001, '6B', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20261001, '6C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE951_20261001, 'FIRST', 6178000),
+  (@sc_KE951_20261001, 'BUSINESS', 2490300),
+  (@sc_KE951_20261001, 'ECONOMY', 1175600);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE951'), '2026-10-02 11:00:00', '2026-10-03 00:00:00');
+SET @sc_KE951_20261002 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE951_20261002, '1A', 'FIRST', 'AVAILABLE'),
+  (@sc_KE951_20261002, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE951_20261002, '2A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20261002, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20261002, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20261002, '2D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20261002, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261002, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20261002, '4C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261002, '5A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261002, '5B', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20261002, '5C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261002, '6A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261002, '6B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261002, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE951_20261002, 'FIRST', 6315300),
+  (@sc_KE951_20261002, 'BUSINESS', 2898100),
+  (@sc_KE951_20261002, 'ECONOMY', 1178800);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE951'), '2026-10-03 11:00:00', '2026-10-04 00:00:00');
+SET @sc_KE951_20261003 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE951_20261003, '1A', 'FIRST', 'AVAILABLE'),
+  (@sc_KE951_20261003, '1B', 'FIRST', 'SOLD'),
+  (@sc_KE951_20261003, '2A', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20261003, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20261003, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20261003, '2D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20261003, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261003, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261003, '4C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261003, '5A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261003, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261003, '5C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261003, '6A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261003, '6B', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20261003, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE951_20261003, 'FIRST', 5959400),
+  (@sc_KE951_20261003, 'BUSINESS', 2635000),
+  (@sc_KE951_20261003, 'ECONOMY', 1175800);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE951'), '2026-10-04 11:00:00', '2026-10-05 00:00:00');
+SET @sc_KE951_20261004 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE951_20261004, '1A', 'FIRST', 'SOLD'),
+  (@sc_KE951_20261004, '1B', 'FIRST', 'SOLD'),
+  (@sc_KE951_20261004, '2A', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20261004, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20261004, '2C', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20261004, '2D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20261004, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261004, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261004, '4C', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20261004, '5A', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20261004, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261004, '5C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261004, '6A', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20261004, '6B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261004, '6C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE951_20261004, 'FIRST', 5777100),
+  (@sc_KE951_20261004, 'BUSINESS', 2843800),
+  (@sc_KE951_20261004, 'ECONOMY', 1075500);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE951'), '2026-10-05 11:00:00', '2026-10-06 00:00:00');
+SET @sc_KE951_20261005 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE951_20261005, '1A', 'FIRST', 'SOLD'),
+  (@sc_KE951_20261005, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE951_20261005, '2A', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20261005, '2B', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20261005, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20261005, '2D', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20261005, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261005, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20261005, '4C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261005, '5A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261005, '5B', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20261005, '5C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261005, '6A', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20261005, '6B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261005, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE951_20261005, 'FIRST', 6867800),
+  (@sc_KE951_20261005, 'BUSINESS', 2599400),
+  (@sc_KE951_20261005, 'ECONOMY', 1193400);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE951'), '2026-10-06 11:00:00', '2026-10-07 00:00:00');
+SET @sc_KE951_20261006 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE951_20261006, '1A', 'FIRST', 'SOLD'),
+  (@sc_KE951_20261006, '1B', 'FIRST', 'SOLD'),
+  (@sc_KE951_20261006, '2A', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20261006, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20261006, '2C', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20261006, '2D', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20261006, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261006, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261006, '4C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261006, '5A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261006, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261006, '5C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261006, '6A', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20261006, '6B', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20261006, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE951_20261006, 'FIRST', 6512400),
+  (@sc_KE951_20261006, 'BUSINESS', 2865100),
+  (@sc_KE951_20261006, 'ECONOMY', 1098500);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE951'), '2026-10-07 11:00:00', '2026-10-08 00:00:00');
+SET @sc_KE951_20261007 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE951_20261007, '1A', 'FIRST', 'SOLD'),
+  (@sc_KE951_20261007, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE951_20261007, '2A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20261007, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20261007, '2C', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20261007, '2D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20261007, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20261007, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20261007, '4C', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20261007, '5A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261007, '5B', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20261007, '5C', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20261007, '6A', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20261007, '6B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261007, '6C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE951_20261007, 'FIRST', 6161500),
+  (@sc_KE951_20261007, 'BUSINESS', 2765400),
+  (@sc_KE951_20261007, 'ECONOMY', 1006300);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE951'), '2026-10-08 11:00:00', '2026-10-09 00:00:00');
+SET @sc_KE951_20261008 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE951_20261008, '1A', 'FIRST', 'SOLD'),
+  (@sc_KE951_20261008, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE951_20261008, '2A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20261008, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20261008, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20261008, '2D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20261008, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261008, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261008, '4C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261008, '5A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261008, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261008, '5C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261008, '6A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261008, '6B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261008, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE951_20261008, 'FIRST', 6123600),
+  (@sc_KE951_20261008, 'BUSINESS', 2692900),
+  (@sc_KE951_20261008, 'ECONOMY', 1050700);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE951'), '2026-10-09 11:00:00', '2026-10-10 00:00:00');
+SET @sc_KE951_20261009 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE951_20261009, '1A', 'FIRST', 'AVAILABLE'),
+  (@sc_KE951_20261009, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE951_20261009, '2A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20261009, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20261009, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20261009, '2D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20261009, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261009, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261009, '4C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261009, '5A', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20261009, '5B', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20261009, '5C', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20261009, '6A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261009, '6B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261009, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE951_20261009, 'FIRST', 6254900),
+  (@sc_KE951_20261009, 'BUSINESS', 2557900),
+  (@sc_KE951_20261009, 'ECONOMY', 998500);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE951'), '2026-10-10 11:00:00', '2026-10-11 00:00:00');
+SET @sc_KE951_20261010 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE951_20261010, '1A', 'FIRST', 'AVAILABLE'),
+  (@sc_KE951_20261010, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE951_20261010, '2A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20261010, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20261010, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20261010, '2D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20261010, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261010, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261010, '4C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261010, '5A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261010, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261010, '5C', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20261010, '6A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261010, '6B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261010, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE951_20261010, 'FIRST', 5734300),
+  (@sc_KE951_20261010, 'BUSINESS', 2501200),
+  (@sc_KE951_20261010, 'ECONOMY', 1215100);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE951'), '2026-10-11 11:00:00', '2026-10-12 00:00:00');
+SET @sc_KE951_20261011 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE951_20261011, '1A', 'FIRST', 'SOLD'),
+  (@sc_KE951_20261011, '1B', 'FIRST', 'SOLD'),
+  (@sc_KE951_20261011, '2A', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20261011, '2B', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20261011, '2C', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20261011, '2D', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20261011, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20261011, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261011, '4C', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20261011, '5A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261011, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261011, '5C', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20261011, '6A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261011, '6B', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20261011, '6C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE951_20261011, 'FIRST', 6235700),
+  (@sc_KE951_20261011, 'BUSINESS', 3099300),
+  (@sc_KE951_20261011, 'ECONOMY', 1111500);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE951'), '2026-10-12 11:00:00', '2026-10-13 00:00:00');
+SET @sc_KE951_20261012 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE951_20261012, '1A', 'FIRST', 'AVAILABLE'),
+  (@sc_KE951_20261012, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE951_20261012, '2A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20261012, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20261012, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20261012, '2D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20261012, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261012, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261012, '4C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261012, '5A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261012, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261012, '5C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261012, '6A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261012, '6B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261012, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE951_20261012, 'FIRST', 6822400),
+  (@sc_KE951_20261012, 'BUSINESS', 2960500),
+  (@sc_KE951_20261012, 'ECONOMY', 1181100);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE951'), '2026-10-13 11:00:00', '2026-10-14 00:00:00');
+SET @sc_KE951_20261013 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE951_20261013, '1A', 'FIRST', 'AVAILABLE'),
+  (@sc_KE951_20261013, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE951_20261013, '2A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20261013, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20261013, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20261013, '2D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20261013, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261013, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261013, '4C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261013, '5A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261013, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261013, '5C', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20261013, '6A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261013, '6B', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20261013, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE951_20261013, 'FIRST', 6397400),
+  (@sc_KE951_20261013, 'BUSINESS', 2625800),
+  (@sc_KE951_20261013, 'ECONOMY', 1193100);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE951'), '2026-10-14 11:00:00', '2026-10-15 00:00:00');
+SET @sc_KE951_20261014 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE951_20261014, '1A', 'FIRST', 'SOLD'),
+  (@sc_KE951_20261014, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE951_20261014, '2A', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20261014, '2B', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20261014, '2C', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20261014, '2D', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20261014, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261014, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20261014, '4C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261014, '5A', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20261014, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261014, '5C', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20261014, '6A', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20261014, '6B', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20261014, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE951_20261014, 'FIRST', 6568700),
+  (@sc_KE951_20261014, 'BUSINESS', 2876200),
+  (@sc_KE951_20261014, 'ECONOMY', 1101700);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE951'), '2026-10-15 11:00:00', '2026-10-16 00:00:00');
+SET @sc_KE951_20261015 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE951_20261015, '1A', 'FIRST', 'AVAILABLE'),
+  (@sc_KE951_20261015, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE951_20261015, '2A', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20261015, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20261015, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20261015, '2D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20261015, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261015, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261015, '4C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261015, '5A', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20261015, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261015, '5C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261015, '6A', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20261015, '6B', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20261015, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE951_20261015, 'FIRST', 6138300),
+  (@sc_KE951_20261015, 'BUSINESS', 2744500),
+  (@sc_KE951_20261015, 'ECONOMY', 1155900);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE951'), '2026-10-16 11:00:00', '2026-10-17 00:00:00');
+SET @sc_KE951_20261016 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE951_20261016, '1A', 'FIRST', 'SOLD'),
+  (@sc_KE951_20261016, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE951_20261016, '2A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20261016, '2B', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20261016, '2C', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20261016, '2D', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20261016, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20261016, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261016, '4C', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20261016, '5A', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20261016, '5B', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20261016, '5C', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20261016, '6A', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20261016, '6B', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20261016, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE951_20261016, 'FIRST', 7069600),
+  (@sc_KE951_20261016, 'BUSINESS', 2794300),
+  (@sc_KE951_20261016, 'ECONOMY', 1018400);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE951'), '2026-10-17 11:00:00', '2026-10-18 00:00:00');
+SET @sc_KE951_20261017 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE951_20261017, '1A', 'FIRST', 'SOLD'),
+  (@sc_KE951_20261017, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE951_20261017, '2A', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20261017, '2B', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20261017, '2C', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20261017, '2D', 'BUSINESS', 'SOLD'),
+  (@sc_KE951_20261017, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261017, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261017, '4C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261017, '5A', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20261017, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261017, '5C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261017, '6A', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20261017, '6B', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20261017, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE951_20261017, 'FIRST', 6450900),
+  (@sc_KE951_20261017, 'BUSINESS', 2446200),
+  (@sc_KE951_20261017, 'ECONOMY', 1201900);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE951'), '2026-10-18 11:00:00', '2026-10-19 00:00:00');
+SET @sc_KE951_20261018 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE951_20261018, '1A', 'FIRST', 'AVAILABLE'),
+  (@sc_KE951_20261018, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE951_20261018, '2A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20261018, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20261018, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20261018, '2D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE951_20261018, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20261018, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261018, '4C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261018, '5A', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20261018, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261018, '5C', 'ECONOMY', 'SOLD'),
+  (@sc_KE951_20261018, '6A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261018, '6B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE951_20261018, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE951_20261018, 'FIRST', 6263700),
+  (@sc_KE951_20261018, 'BUSINESS', 2859300),
+  (@sc_KE951_20261018, 'ECONOMY', 1205700);
+
+-- KE952 CDG -> NRT
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE952'), '2026-08-20 13:00:00', '2026-08-21 02:00:00');
+SET @sc_KE952_20260820 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE952_20260820, '1A', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20260820, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20260820, '2A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260820, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260820, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260820, '2D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260820, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260820, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260820, '4C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260820, '5A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260820, '5B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260820, '5C', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260820, '6A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260820, '6B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260820, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE952_20260820, 'FIRST', 5603900),
+  (@sc_KE952_20260820, 'BUSINESS', 3043800),
+  (@sc_KE952_20260820, 'ECONOMY', 1071100);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE952'), '2026-08-21 13:00:00', '2026-08-22 02:00:00');
+SET @sc_KE952_20260821 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE952_20260821, '1A', 'FIRST', 'SOLD'),
+  (@sc_KE952_20260821, '1B', 'FIRST', 'SOLD'),
+  (@sc_KE952_20260821, '2A', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260821, '2B', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260821, '2C', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260821, '2D', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260821, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260821, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260821, '4C', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260821, '5A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260821, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260821, '5C', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260821, '6A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260821, '6B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260821, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE952_20260821, 'FIRST', 6085300),
+  (@sc_KE952_20260821, 'BUSINESS', 2774500),
+  (@sc_KE952_20260821, 'ECONOMY', 1099100);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE952'), '2026-08-22 13:00:00', '2026-08-23 02:00:00');
+SET @sc_KE952_20260822 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE952_20260822, '1A', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20260822, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20260822, '2A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260822, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260822, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260822, '2D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260822, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260822, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260822, '4C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260822, '5A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260822, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260822, '5C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260822, '6A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260822, '6B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260822, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE952_20260822, 'FIRST', 6888700),
+  (@sc_KE952_20260822, 'BUSINESS', 2485600),
+  (@sc_KE952_20260822, 'ECONOMY', 1094700);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE952'), '2026-08-23 13:00:00', '2026-08-24 02:00:00');
+SET @sc_KE952_20260823 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE952_20260823, '1A', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20260823, '1B', 'FIRST', 'SOLD'),
+  (@sc_KE952_20260823, '2A', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260823, '2B', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260823, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260823, '2D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260823, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260823, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260823, '4C', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260823, '5A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260823, '5B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260823, '5C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260823, '6A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260823, '6B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260823, '6C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE952_20260823, 'FIRST', 6826100),
+  (@sc_KE952_20260823, 'BUSINESS', 2818400),
+  (@sc_KE952_20260823, 'ECONOMY', 1225000);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE952'), '2026-08-24 13:00:00', '2026-08-25 02:00:00');
+SET @sc_KE952_20260824 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE952_20260824, '1A', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20260824, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20260824, '2A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260824, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260824, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260824, '2D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260824, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260824, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260824, '4C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260824, '5A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260824, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260824, '5C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260824, '6A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260824, '6B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260824, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE952_20260824, 'FIRST', 6542200),
+  (@sc_KE952_20260824, 'BUSINESS', 2426300),
+  (@sc_KE952_20260824, 'ECONOMY', 1147800);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE952'), '2026-08-25 13:00:00', '2026-08-26 02:00:00');
+SET @sc_KE952_20260825 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE952_20260825, '1A', 'FIRST', 'SOLD'),
+  (@sc_KE952_20260825, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20260825, '2A', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260825, '2B', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260825, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260825, '2D', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260825, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260825, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260825, '4C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260825, '5A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260825, '5B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260825, '5C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260825, '6A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260825, '6B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260825, '6C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE952_20260825, 'FIRST', 6813100),
+  (@sc_KE952_20260825, 'BUSINESS', 2698400),
+  (@sc_KE952_20260825, 'ECONOMY', 1004500);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE952'), '2026-08-26 13:00:00', '2026-08-27 02:00:00');
+SET @sc_KE952_20260826 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE952_20260826, '1A', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20260826, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20260826, '2A', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260826, '2B', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260826, '2C', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260826, '2D', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260826, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260826, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260826, '4C', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260826, '5A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260826, '5B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260826, '5C', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260826, '6A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260826, '6B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260826, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE952_20260826, 'FIRST', 6470000),
+  (@sc_KE952_20260826, 'BUSINESS', 2924600),
+  (@sc_KE952_20260826, 'ECONOMY', 1161300);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE952'), '2026-08-27 13:00:00', '2026-08-28 02:00:00');
+SET @sc_KE952_20260827 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE952_20260827, '1A', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20260827, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20260827, '2A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260827, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260827, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260827, '2D', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260827, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260827, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260827, '4C', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260827, '5A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260827, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260827, '5C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260827, '6A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260827, '6B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260827, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE952_20260827, 'FIRST', 6579100),
+  (@sc_KE952_20260827, 'BUSINESS', 2869600),
+  (@sc_KE952_20260827, 'ECONOMY', 1190000);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE952'), '2026-08-28 13:00:00', '2026-08-29 02:00:00');
+SET @sc_KE952_20260828 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE952_20260828, '1A', 'FIRST', 'SOLD'),
+  (@sc_KE952_20260828, '1B', 'FIRST', 'SOLD'),
+  (@sc_KE952_20260828, '2A', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260828, '2B', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260828, '2C', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260828, '2D', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260828, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260828, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260828, '4C', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260828, '5A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260828, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260828, '5C', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260828, '6A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260828, '6B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260828, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE952_20260828, 'FIRST', 5932500),
+  (@sc_KE952_20260828, 'BUSINESS', 2445800),
+  (@sc_KE952_20260828, 'ECONOMY', 984500);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE952'), '2026-08-29 13:00:00', '2026-08-30 02:00:00');
+SET @sc_KE952_20260829 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE952_20260829, '1A', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20260829, '1B', 'FIRST', 'SOLD'),
+  (@sc_KE952_20260829, '2A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260829, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260829, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260829, '2D', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260829, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260829, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260829, '4C', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260829, '5A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260829, '5B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260829, '5C', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260829, '6A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260829, '6B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260829, '6C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE952_20260829, 'FIRST', 6370100),
+  (@sc_KE952_20260829, 'BUSINESS', 2595400),
+  (@sc_KE952_20260829, 'ECONOMY', 1033000);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE952'), '2026-08-30 13:00:00', '2026-08-31 02:00:00');
+SET @sc_KE952_20260830 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE952_20260830, '1A', 'FIRST', 'SOLD'),
+  (@sc_KE952_20260830, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20260830, '2A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260830, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260830, '2C', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260830, '2D', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260830, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260830, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260830, '4C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260830, '5A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260830, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260830, '5C', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260830, '6A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260830, '6B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260830, '6C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE952_20260830, 'FIRST', 6958900),
+  (@sc_KE952_20260830, 'BUSINESS', 2794500),
+  (@sc_KE952_20260830, 'ECONOMY', 1081000);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE952'), '2026-08-31 13:00:00', '2026-09-01 02:00:00');
+SET @sc_KE952_20260831 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE952_20260831, '1A', 'FIRST', 'SOLD'),
+  (@sc_KE952_20260831, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20260831, '2A', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260831, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260831, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260831, '2D', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260831, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260831, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260831, '4C', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260831, '5A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260831, '5B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260831, '5C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260831, '6A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260831, '6B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260831, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE952_20260831, 'FIRST', 6396400),
+  (@sc_KE952_20260831, 'BUSINESS', 2711400),
+  (@sc_KE952_20260831, 'ECONOMY', 1234000);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE952'), '2026-09-01 13:00:00', '2026-09-02 02:00:00');
+SET @sc_KE952_20260901 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE952_20260901, '1A', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20260901, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20260901, '2A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260901, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260901, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260901, '2D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260901, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260901, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260901, '4C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260901, '5A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260901, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260901, '5C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260901, '6A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260901, '6B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260901, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE952_20260901, 'FIRST', 5497700),
+  (@sc_KE952_20260901, 'BUSINESS', 2403800),
+  (@sc_KE952_20260901, 'ECONOMY', 1110200);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE952'), '2026-09-02 13:00:00', '2026-09-03 02:00:00');
+SET @sc_KE952_20260902 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE952_20260902, '1A', 'FIRST', 'SOLD'),
+  (@sc_KE952_20260902, '1B', 'FIRST', 'SOLD'),
+  (@sc_KE952_20260902, '2A', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260902, '2B', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260902, '2C', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260902, '2D', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260902, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260902, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260902, '4C', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260902, '5A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260902, '5B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260902, '5C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260902, '6A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260902, '6B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260902, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE952_20260902, 'FIRST', 5614600),
+  (@sc_KE952_20260902, 'BUSINESS', 3046400),
+  (@sc_KE952_20260902, 'ECONOMY', 1085000);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE952'), '2026-09-03 13:00:00', '2026-09-04 02:00:00');
+SET @sc_KE952_20260903 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE952_20260903, '1A', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20260903, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20260903, '2A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260903, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260903, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260903, '2D', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260903, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260903, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260903, '4C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260903, '5A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260903, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260903, '5C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260903, '6A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260903, '6B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260903, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE952_20260903, 'FIRST', 5780200),
+  (@sc_KE952_20260903, 'BUSINESS', 2710500),
+  (@sc_KE952_20260903, 'ECONOMY', 1198700);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE952'), '2026-09-04 13:00:00', '2026-09-05 02:00:00');
+SET @sc_KE952_20260904 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE952_20260904, '1A', 'FIRST', 'SOLD'),
+  (@sc_KE952_20260904, '1B', 'FIRST', 'SOLD'),
+  (@sc_KE952_20260904, '2A', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260904, '2B', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260904, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260904, '2D', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260904, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260904, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260904, '4C', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260904, '5A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260904, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260904, '5C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260904, '6A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260904, '6B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260904, '6C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE952_20260904, 'FIRST', 5886200),
+  (@sc_KE952_20260904, 'BUSINESS', 2983900),
+  (@sc_KE952_20260904, 'ECONOMY', 987300);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE952'), '2026-09-05 13:00:00', '2026-09-06 02:00:00');
+SET @sc_KE952_20260905 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE952_20260905, '1A', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20260905, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20260905, '2A', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260905, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260905, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260905, '2D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260905, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260905, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260905, '4C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260905, '5A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260905, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260905, '5C', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260905, '6A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260905, '6B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260905, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE952_20260905, 'FIRST', 6532600),
+  (@sc_KE952_20260905, 'BUSINESS', 2836400),
+  (@sc_KE952_20260905, 'ECONOMY', 1015500);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE952'), '2026-09-06 13:00:00', '2026-09-07 02:00:00');
+SET @sc_KE952_20260906 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE952_20260906, '1A', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20260906, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20260906, '2A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260906, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260906, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260906, '2D', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260906, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260906, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260906, '4C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260906, '5A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260906, '5B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260906, '5C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260906, '6A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260906, '6B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260906, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE952_20260906, 'FIRST', 5725400),
+  (@sc_KE952_20260906, 'BUSINESS', 2487500),
+  (@sc_KE952_20260906, 'ECONOMY', 1173700);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE952'), '2026-09-07 13:00:00', '2026-09-08 02:00:00');
+SET @sc_KE952_20260907 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE952_20260907, '1A', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20260907, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20260907, '2A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260907, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260907, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260907, '2D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260907, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260907, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260907, '4C', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260907, '5A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260907, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260907, '5C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260907, '6A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260907, '6B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260907, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE952_20260907, 'FIRST', 5506700),
+  (@sc_KE952_20260907, 'BUSINESS', 2465900),
+  (@sc_KE952_20260907, 'ECONOMY', 1004500);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE952'), '2026-09-08 13:00:00', '2026-09-09 02:00:00');
+SET @sc_KE952_20260908 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE952_20260908, '1A', 'FIRST', 'SOLD'),
+  (@sc_KE952_20260908, '1B', 'FIRST', 'SOLD'),
+  (@sc_KE952_20260908, '2A', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260908, '2B', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260908, '2C', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260908, '2D', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260908, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260908, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260908, '4C', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260908, '5A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260908, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260908, '5C', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260908, '6A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260908, '6B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260908, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE952_20260908, 'FIRST', 6093800),
+  (@sc_KE952_20260908, 'BUSINESS', 2406800),
+  (@sc_KE952_20260908, 'ECONOMY', 1110100);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE952'), '2026-09-09 13:00:00', '2026-09-10 02:00:00');
+SET @sc_KE952_20260909 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE952_20260909, '1A', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20260909, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20260909, '2A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260909, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260909, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260909, '2D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260909, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260909, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260909, '4C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260909, '5A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260909, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260909, '5C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260909, '6A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260909, '6B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260909, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE952_20260909, 'FIRST', 5886700),
+  (@sc_KE952_20260909, 'BUSINESS', 2468800),
+  (@sc_KE952_20260909, 'ECONOMY', 1051800);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE952'), '2026-09-10 13:00:00', '2026-09-11 02:00:00');
+SET @sc_KE952_20260910 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE952_20260910, '1A', 'FIRST', 'SOLD'),
+  (@sc_KE952_20260910, '1B', 'FIRST', 'SOLD'),
+  (@sc_KE952_20260910, '2A', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260910, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260910, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260910, '2D', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260910, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260910, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260910, '4C', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260910, '5A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260910, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260910, '5C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260910, '6A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260910, '6B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260910, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE952_20260910, 'FIRST', 6213700),
+  (@sc_KE952_20260910, 'BUSINESS', 3020400),
+  (@sc_KE952_20260910, 'ECONOMY', 1005500);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE952'), '2026-09-11 13:00:00', '2026-09-12 02:00:00');
+SET @sc_KE952_20260911 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE952_20260911, '1A', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20260911, '1B', 'FIRST', 'SOLD'),
+  (@sc_KE952_20260911, '2A', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260911, '2B', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260911, '2C', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260911, '2D', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260911, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260911, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260911, '4C', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260911, '5A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260911, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260911, '5C', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260911, '6A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260911, '6B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260911, '6C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE952_20260911, 'FIRST', 6890300),
+  (@sc_KE952_20260911, 'BUSINESS', 3003100),
+  (@sc_KE952_20260911, 'ECONOMY', 1011100);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE952'), '2026-09-12 13:00:00', '2026-09-13 02:00:00');
+SET @sc_KE952_20260912 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE952_20260912, '1A', 'FIRST', 'SOLD'),
+  (@sc_KE952_20260912, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20260912, '2A', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260912, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260912, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260912, '2D', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260912, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260912, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260912, '4C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260912, '5A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260912, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260912, '5C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260912, '6A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260912, '6B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260912, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE952_20260912, 'FIRST', 5693200),
+  (@sc_KE952_20260912, 'BUSINESS', 2526900),
+  (@sc_KE952_20260912, 'ECONOMY', 1109500);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE952'), '2026-09-13 13:00:00', '2026-09-14 02:00:00');
+SET @sc_KE952_20260913 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE952_20260913, '1A', 'FIRST', 'SOLD'),
+  (@sc_KE952_20260913, '1B', 'FIRST', 'SOLD'),
+  (@sc_KE952_20260913, '2A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260913, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260913, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260913, '2D', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260913, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260913, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260913, '4C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260913, '5A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260913, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260913, '5C', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260913, '6A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260913, '6B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260913, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE952_20260913, 'FIRST', 6197700),
+  (@sc_KE952_20260913, 'BUSINESS', 2647100),
+  (@sc_KE952_20260913, 'ECONOMY', 1050100);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE952'), '2026-09-14 13:00:00', '2026-09-15 02:00:00');
+SET @sc_KE952_20260914 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE952_20260914, '1A', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20260914, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20260914, '2A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260914, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260914, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260914, '2D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260914, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260914, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260914, '4C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260914, '5A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260914, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260914, '5C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260914, '6A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260914, '6B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260914, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE952_20260914, 'FIRST', 6237600),
+  (@sc_KE952_20260914, 'BUSINESS', 2554000),
+  (@sc_KE952_20260914, 'ECONOMY', 1142800);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE952'), '2026-09-15 13:00:00', '2026-09-16 02:00:00');
+SET @sc_KE952_20260915 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE952_20260915, '1A', 'FIRST', 'SOLD'),
+  (@sc_KE952_20260915, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20260915, '2A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260915, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260915, '2C', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260915, '2D', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260915, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260915, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260915, '4C', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260915, '5A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260915, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260915, '5C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260915, '6A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260915, '6B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260915, '6C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE952_20260915, 'FIRST', 5894100),
+  (@sc_KE952_20260915, 'BUSINESS', 2530800),
+  (@sc_KE952_20260915, 'ECONOMY', 1026900);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE952'), '2026-09-16 13:00:00', '2026-09-17 02:00:00');
+SET @sc_KE952_20260916 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE952_20260916, '1A', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20260916, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20260916, '2A', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260916, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260916, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260916, '2D', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260916, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260916, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260916, '4C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260916, '5A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260916, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260916, '5C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260916, '6A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260916, '6B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260916, '6C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE952_20260916, 'FIRST', 5762300),
+  (@sc_KE952_20260916, 'BUSINESS', 2592600),
+  (@sc_KE952_20260916, 'ECONOMY', 1117600);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE952'), '2026-09-17 13:00:00', '2026-09-18 02:00:00');
+SET @sc_KE952_20260917 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE952_20260917, '1A', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20260917, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20260917, '2A', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260917, '2B', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260917, '2C', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260917, '2D', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260917, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260917, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260917, '4C', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260917, '5A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260917, '5B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260917, '5C', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260917, '6A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260917, '6B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260917, '6C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE952_20260917, 'FIRST', 6846900),
+  (@sc_KE952_20260917, 'BUSINESS', 2764400),
+  (@sc_KE952_20260917, 'ECONOMY', 1018100);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE952'), '2026-09-18 13:00:00', '2026-09-19 02:00:00');
+SET @sc_KE952_20260918 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE952_20260918, '1A', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20260918, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20260918, '2A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260918, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260918, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260918, '2D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260918, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260918, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260918, '4C', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260918, '5A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260918, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260918, '5C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260918, '6A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260918, '6B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260918, '6C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE952_20260918, 'FIRST', 6644600),
+  (@sc_KE952_20260918, 'BUSINESS', 2923100),
+  (@sc_KE952_20260918, 'ECONOMY', 1017100);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE952'), '2026-09-19 13:00:00', '2026-09-20 02:00:00');
+SET @sc_KE952_20260919 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE952_20260919, '1A', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20260919, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20260919, '2A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260919, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260919, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260919, '2D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260919, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260919, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260919, '4C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260919, '5A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260919, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260919, '5C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260919, '6A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260919, '6B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260919, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE952_20260919, 'FIRST', 5896300),
+  (@sc_KE952_20260919, 'BUSINESS', 2426500),
+  (@sc_KE952_20260919, 'ECONOMY', 1098100);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE952'), '2026-09-20 13:00:00', '2026-09-21 02:00:00');
+SET @sc_KE952_20260920 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE952_20260920, '1A', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20260920, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20260920, '2A', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260920, '2B', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260920, '2C', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260920, '2D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260920, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260920, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260920, '4C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260920, '5A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260920, '5B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260920, '5C', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260920, '6A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260920, '6B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260920, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE952_20260920, 'FIRST', 5932100),
+  (@sc_KE952_20260920, 'BUSINESS', 2677900),
+  (@sc_KE952_20260920, 'ECONOMY', 1185300);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE952'), '2026-09-21 13:00:00', '2026-09-22 02:00:00');
+SET @sc_KE952_20260921 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE952_20260921, '1A', 'FIRST', 'SOLD'),
+  (@sc_KE952_20260921, '1B', 'FIRST', 'SOLD'),
+  (@sc_KE952_20260921, '2A', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260921, '2B', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260921, '2C', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260921, '2D', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260921, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260921, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260921, '4C', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260921, '5A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260921, '5B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260921, '5C', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260921, '6A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260921, '6B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260921, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE952_20260921, 'FIRST', 5743700),
+  (@sc_KE952_20260921, 'BUSINESS', 2938400),
+  (@sc_KE952_20260921, 'ECONOMY', 1031400);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE952'), '2026-09-22 13:00:00', '2026-09-23 02:00:00');
+SET @sc_KE952_20260922 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE952_20260922, '1A', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20260922, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20260922, '2A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260922, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260922, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260922, '2D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260922, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260922, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260922, '4C', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260922, '5A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260922, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260922, '5C', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260922, '6A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260922, '6B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260922, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE952_20260922, 'FIRST', 6077600),
+  (@sc_KE952_20260922, 'BUSINESS', 2597800),
+  (@sc_KE952_20260922, 'ECONOMY', 1125600);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE952'), '2026-09-23 13:00:00', '2026-09-24 02:00:00');
+SET @sc_KE952_20260923 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE952_20260923, '1A', 'FIRST', 'SOLD'),
+  (@sc_KE952_20260923, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20260923, '2A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260923, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260923, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260923, '2D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260923, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260923, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260923, '4C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260923, '5A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260923, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260923, '5C', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260923, '6A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260923, '6B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260923, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE952_20260923, 'FIRST', 5539900),
+  (@sc_KE952_20260923, 'BUSINESS', 2984100),
+  (@sc_KE952_20260923, 'ECONOMY', 1088100);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE952'), '2026-09-24 13:00:00', '2026-09-25 02:00:00');
+SET @sc_KE952_20260924 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE952_20260924, '1A', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20260924, '1B', 'FIRST', 'SOLD'),
+  (@sc_KE952_20260924, '2A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260924, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260924, '2C', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260924, '2D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260924, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260924, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260924, '4C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260924, '5A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260924, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260924, '5C', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260924, '6A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260924, '6B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260924, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE952_20260924, 'FIRST', 6143400),
+  (@sc_KE952_20260924, 'BUSINESS', 2555800),
+  (@sc_KE952_20260924, 'ECONOMY', 1156300);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE952'), '2026-09-25 13:00:00', '2026-09-26 02:00:00');
+SET @sc_KE952_20260925 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE952_20260925, '1A', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20260925, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20260925, '2A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260925, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260925, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260925, '2D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260925, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260925, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260925, '4C', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260925, '5A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260925, '5B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260925, '5C', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260925, '6A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260925, '6B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260925, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE952_20260925, 'FIRST', 6576100),
+  (@sc_KE952_20260925, 'BUSINESS', 3011400),
+  (@sc_KE952_20260925, 'ECONOMY', 1225500);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE952'), '2026-09-26 13:00:00', '2026-09-27 02:00:00');
+SET @sc_KE952_20260926 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE952_20260926, '1A', 'FIRST', 'SOLD'),
+  (@sc_KE952_20260926, '1B', 'FIRST', 'SOLD'),
+  (@sc_KE952_20260926, '2A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260926, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260926, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260926, '2D', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260926, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260926, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260926, '4C', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260926, '5A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260926, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260926, '5C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260926, '6A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260926, '6B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260926, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE952_20260926, 'FIRST', 6766200),
+  (@sc_KE952_20260926, 'BUSINESS', 3012700),
+  (@sc_KE952_20260926, 'ECONOMY', 1199300);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE952'), '2026-09-27 13:00:00', '2026-09-28 02:00:00');
+SET @sc_KE952_20260927 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE952_20260927, '1A', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20260927, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20260927, '2A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260927, '2B', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260927, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260927, '2D', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260927, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260927, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260927, '4C', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260927, '5A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260927, '5B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260927, '5C', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260927, '6A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260927, '6B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260927, '6C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE952_20260927, 'FIRST', 7006600),
+  (@sc_KE952_20260927, 'BUSINESS', 2661600),
+  (@sc_KE952_20260927, 'ECONOMY', 1060100);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE952'), '2026-09-28 13:00:00', '2026-09-29 02:00:00');
+SET @sc_KE952_20260928 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE952_20260928, '1A', 'FIRST', 'SOLD'),
+  (@sc_KE952_20260928, '1B', 'FIRST', 'SOLD'),
+  (@sc_KE952_20260928, '2A', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260928, '2B', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260928, '2C', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260928, '2D', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260928, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260928, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260928, '4C', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260928, '5A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260928, '5B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260928, '5C', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260928, '6A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260928, '6B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260928, '6C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE952_20260928, 'FIRST', 5990200),
+  (@sc_KE952_20260928, 'BUSINESS', 2738300),
+  (@sc_KE952_20260928, 'ECONOMY', 1059200);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE952'), '2026-09-29 13:00:00', '2026-09-30 02:00:00');
+SET @sc_KE952_20260929 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE952_20260929, '1A', 'FIRST', 'SOLD'),
+  (@sc_KE952_20260929, '1B', 'FIRST', 'SOLD'),
+  (@sc_KE952_20260929, '2A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260929, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260929, '2C', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260929, '2D', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260929, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260929, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260929, '4C', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260929, '5A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260929, '5B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260929, '5C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260929, '6A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260929, '6B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20260929, '6C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE952_20260929, 'FIRST', 6314700),
+  (@sc_KE952_20260929, 'BUSINESS', 2464900),
+  (@sc_KE952_20260929, 'ECONOMY', 1054900);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE952'), '2026-09-30 13:00:00', '2026-10-01 02:00:00');
+SET @sc_KE952_20260930 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE952_20260930, '1A', 'FIRST', 'SOLD'),
+  (@sc_KE952_20260930, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20260930, '2A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260930, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260930, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20260930, '2D', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20260930, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260930, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260930, '4C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260930, '5A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260930, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260930, '5C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260930, '6A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260930, '6B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20260930, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE952_20260930, 'FIRST', 5960200),
+  (@sc_KE952_20260930, 'BUSINESS', 2912100),
+  (@sc_KE952_20260930, 'ECONOMY', 1160000);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE952'), '2026-10-01 13:00:00', '2026-10-02 02:00:00');
+SET @sc_KE952_20261001 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE952_20261001, '1A', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20261001, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20261001, '2A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20261001, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20261001, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20261001, '2D', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20261001, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261001, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261001, '4C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261001, '5A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261001, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261001, '5C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261001, '6A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261001, '6B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261001, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE952_20261001, 'FIRST', 6040900),
+  (@sc_KE952_20261001, 'BUSINESS', 2567700),
+  (@sc_KE952_20261001, 'ECONOMY', 1080900);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE952'), '2026-10-02 13:00:00', '2026-10-03 02:00:00');
+SET @sc_KE952_20261002 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE952_20261002, '1A', 'FIRST', 'SOLD'),
+  (@sc_KE952_20261002, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20261002, '2A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20261002, '2B', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20261002, '2C', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20261002, '2D', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20261002, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20261002, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261002, '4C', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20261002, '5A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20261002, '5B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20261002, '5C', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20261002, '6A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20261002, '6B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261002, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE952_20261002, 'FIRST', 5772900),
+  (@sc_KE952_20261002, 'BUSINESS', 2938500),
+  (@sc_KE952_20261002, 'ECONOMY', 1119900);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE952'), '2026-10-03 13:00:00', '2026-10-04 02:00:00');
+SET @sc_KE952_20261003 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE952_20261003, '1A', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20261003, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20261003, '2A', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20261003, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20261003, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20261003, '2D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20261003, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261003, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261003, '4C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261003, '5A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20261003, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261003, '5C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261003, '6A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261003, '6B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261003, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE952_20261003, 'FIRST', 6957100),
+  (@sc_KE952_20261003, 'BUSINESS', 2897300),
+  (@sc_KE952_20261003, 'ECONOMY', 1004400);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE952'), '2026-10-04 13:00:00', '2026-10-05 02:00:00');
+SET @sc_KE952_20261004 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE952_20261004, '1A', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20261004, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20261004, '2A', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20261004, '2B', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20261004, '2C', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20261004, '2D', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20261004, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20261004, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261004, '4C', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20261004, '5A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261004, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261004, '5C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261004, '6A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261004, '6B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261004, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE952_20261004, 'FIRST', 6557700),
+  (@sc_KE952_20261004, 'BUSINESS', 2657300),
+  (@sc_KE952_20261004, 'ECONOMY', 987900);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE952'), '2026-10-05 13:00:00', '2026-10-06 02:00:00');
+SET @sc_KE952_20261005 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE952_20261005, '1A', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20261005, '1B', 'FIRST', 'SOLD'),
+  (@sc_KE952_20261005, '2A', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20261005, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20261005, '2C', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20261005, '2D', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20261005, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261005, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20261005, '4C', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20261005, '5A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261005, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261005, '5C', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20261005, '6A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20261005, '6B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261005, '6C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE952_20261005, 'FIRST', 5599100),
+  (@sc_KE952_20261005, 'BUSINESS', 2442100),
+  (@sc_KE952_20261005, 'ECONOMY', 1018100);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE952'), '2026-10-06 13:00:00', '2026-10-07 02:00:00');
+SET @sc_KE952_20261006 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE952_20261006, '1A', 'FIRST', 'SOLD'),
+  (@sc_KE952_20261006, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20261006, '2A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20261006, '2B', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20261006, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20261006, '2D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20261006, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261006, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261006, '4C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261006, '5A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261006, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261006, '5C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261006, '6A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20261006, '6B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20261006, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE952_20261006, 'FIRST', 6077400),
+  (@sc_KE952_20261006, 'BUSINESS', 2977000),
+  (@sc_KE952_20261006, 'ECONOMY', 1020400);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE952'), '2026-10-07 13:00:00', '2026-10-08 02:00:00');
+SET @sc_KE952_20261007 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE952_20261007, '1A', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20261007, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20261007, '2A', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20261007, '2B', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20261007, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20261007, '2D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20261007, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20261007, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261007, '4C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261007, '5A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20261007, '5B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20261007, '5C', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20261007, '6A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20261007, '6B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20261007, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE952_20261007, 'FIRST', 6180800),
+  (@sc_KE952_20261007, 'BUSINESS', 2652800),
+  (@sc_KE952_20261007, 'ECONOMY', 1101800);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE952'), '2026-10-08 13:00:00', '2026-10-09 02:00:00');
+SET @sc_KE952_20261008 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE952_20261008, '1A', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20261008, '1B', 'FIRST', 'SOLD'),
+  (@sc_KE952_20261008, '2A', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20261008, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20261008, '2C', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20261008, '2D', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20261008, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20261008, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261008, '4C', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20261008, '5A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261008, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261008, '5C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261008, '6A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261008, '6B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20261008, '6C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE952_20261008, 'FIRST', 5754800),
+  (@sc_KE952_20261008, 'BUSINESS', 2681600),
+  (@sc_KE952_20261008, 'ECONOMY', 1040000);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE952'), '2026-10-09 13:00:00', '2026-10-10 02:00:00');
+SET @sc_KE952_20261009 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE952_20261009, '1A', 'FIRST', 'SOLD'),
+  (@sc_KE952_20261009, '1B', 'FIRST', 'SOLD'),
+  (@sc_KE952_20261009, '2A', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20261009, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20261009, '2C', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20261009, '2D', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20261009, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20261009, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261009, '4C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261009, '5A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261009, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261009, '5C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261009, '6A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20261009, '6B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20261009, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE952_20261009, 'FIRST', 6270500),
+  (@sc_KE952_20261009, 'BUSINESS', 2890700),
+  (@sc_KE952_20261009, 'ECONOMY', 1220100);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE952'), '2026-10-10 13:00:00', '2026-10-11 02:00:00');
+SET @sc_KE952_20261010 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE952_20261010, '1A', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20261010, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20261010, '2A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20261010, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20261010, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20261010, '2D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20261010, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20261010, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261010, '4C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261010, '5A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261010, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261010, '5C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261010, '6A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20261010, '6B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261010, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE952_20261010, 'FIRST', 5718300),
+  (@sc_KE952_20261010, 'BUSINESS', 2919200),
+  (@sc_KE952_20261010, 'ECONOMY', 1163600);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE952'), '2026-10-11 13:00:00', '2026-10-12 02:00:00');
+SET @sc_KE952_20261011 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE952_20261011, '1A', 'FIRST', 'SOLD'),
+  (@sc_KE952_20261011, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20261011, '2A', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20261011, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20261011, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20261011, '2D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20261011, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20261011, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261011, '4C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261011, '5A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261011, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261011, '5C', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20261011, '6A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261011, '6B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261011, '6C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE952_20261011, 'FIRST', 6210400),
+  (@sc_KE952_20261011, 'BUSINESS', 2434400),
+  (@sc_KE952_20261011, 'ECONOMY', 1240900);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE952'), '2026-10-12 13:00:00', '2026-10-13 02:00:00');
+SET @sc_KE952_20261012 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE952_20261012, '1A', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20261012, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20261012, '2A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20261012, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20261012, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20261012, '2D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20261012, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20261012, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261012, '4C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261012, '5A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20261012, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261012, '5C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261012, '6A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261012, '6B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261012, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE952_20261012, 'FIRST', 6814100),
+  (@sc_KE952_20261012, 'BUSINESS', 3023100),
+  (@sc_KE952_20261012, 'ECONOMY', 1093400);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE952'), '2026-10-13 13:00:00', '2026-10-14 02:00:00');
+SET @sc_KE952_20261013 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE952_20261013, '1A', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20261013, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20261013, '2A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20261013, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20261013, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20261013, '2D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20261013, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261013, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261013, '4C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261013, '5A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261013, '5B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20261013, '5C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261013, '6A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261013, '6B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261013, '6C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE952_20261013, 'FIRST', 5808600),
+  (@sc_KE952_20261013, 'BUSINESS', 2910300),
+  (@sc_KE952_20261013, 'ECONOMY', 1063900);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE952'), '2026-10-14 13:00:00', '2026-10-15 02:00:00');
+SET @sc_KE952_20261014 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE952_20261014, '1A', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20261014, '1B', 'FIRST', 'SOLD'),
+  (@sc_KE952_20261014, '2A', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20261014, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20261014, '2C', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20261014, '2D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20261014, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20261014, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20261014, '4C', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20261014, '5A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20261014, '5B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20261014, '5C', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20261014, '6A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20261014, '6B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20261014, '6C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE952_20261014, 'FIRST', 6406600),
+  (@sc_KE952_20261014, 'BUSINESS', 2982000),
+  (@sc_KE952_20261014, 'ECONOMY', 1058300);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE952'), '2026-10-15 13:00:00', '2026-10-16 02:00:00');
+SET @sc_KE952_20261015 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE952_20261015, '1A', 'FIRST', 'SOLD'),
+  (@sc_KE952_20261015, '1B', 'FIRST', 'SOLD'),
+  (@sc_KE952_20261015, '2A', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20261015, '2B', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20261015, '2C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20261015, '2D', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20261015, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261015, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20261015, '4C', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20261015, '5A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20261015, '5B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20261015, '5C', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20261015, '6A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20261015, '6B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20261015, '6C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE952_20261015, 'FIRST', 5507000),
+  (@sc_KE952_20261015, 'BUSINESS', 2548200),
+  (@sc_KE952_20261015, 'ECONOMY', 1070400);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE952'), '2026-10-16 13:00:00', '2026-10-17 02:00:00');
+SET @sc_KE952_20261016 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE952_20261016, '1A', 'FIRST', 'SOLD'),
+  (@sc_KE952_20261016, '1B', 'FIRST', 'SOLD'),
+  (@sc_KE952_20261016, '2A', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20261016, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20261016, '2C', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20261016, '2D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20261016, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20261016, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20261016, '4C', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20261016, '5A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20261016, '5B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261016, '5C', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20261016, '6A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20261016, '6B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20261016, '6C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE952_20261016, 'FIRST', 6720100),
+  (@sc_KE952_20261016, 'BUSINESS', 2921100),
+  (@sc_KE952_20261016, 'ECONOMY', 1163900);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE952'), '2026-10-17 13:00:00', '2026-10-18 02:00:00');
+SET @sc_KE952_20261017 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE952_20261017, '1A', 'FIRST', 'SOLD'),
+  (@sc_KE952_20261017, '1B', 'FIRST', 'AVAILABLE'),
+  (@sc_KE952_20261017, '2A', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20261017, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20261017, '2C', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20261017, '2D', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20261017, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20261017, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20261017, '4C', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20261017, '5A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20261017, '5B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20261017, '5C', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20261017, '6A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20261017, '6B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20261017, '6C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE952_20261017, 'FIRST', 5939600),
+  (@sc_KE952_20261017, 'BUSINESS', 2535100),
+  (@sc_KE952_20261017, 'ECONOMY', 1143500);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE952'), '2026-10-18 13:00:00', '2026-10-19 02:00:00');
+SET @sc_KE952_20261018 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE952_20261018, '1A', 'FIRST', 'SOLD'),
+  (@sc_KE952_20261018, '1B', 'FIRST', 'SOLD'),
+  (@sc_KE952_20261018, '2A', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20261018, '2B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE952_20261018, '2C', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20261018, '2D', 'BUSINESS', 'SOLD'),
+  (@sc_KE952_20261018, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20261018, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261018, '4C', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20261018, '5A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261018, '5B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20261018, '5C', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20261018, '6A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE952_20261018, '6B', 'ECONOMY', 'SOLD'),
+  (@sc_KE952_20261018, '6C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE952_20261018, 'FIRST', 6228500),
+  (@sc_KE952_20261018, 'BUSINESS', 2681200),
+  (@sc_KE952_20261018, 'ECONOMY', 1186300);
+
+-- OZ761 HKG -> BKK
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ761'), '2026-08-20 09:30:00', '2026-08-20 12:00:00');
+SET @sc_OZ761_20260820 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ761_20260820, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260820, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260820, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20260820, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260820, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260820, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260820, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260820, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260820, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260820, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260820, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260820, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ761_20260820, 'BUSINESS', 516700),
+  (@sc_OZ761_20260820, 'ECONOMY', 230800);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ761'), '2026-08-21 09:30:00', '2026-08-21 12:00:00');
+SET @sc_OZ761_20260821 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ761_20260821, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260821, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260821, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260821, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260821, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260821, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260821, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260821, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260821, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260821, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260821, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260821, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ761_20260821, 'BUSINESS', 628500),
+  (@sc_OZ761_20260821, 'ECONOMY', 214700);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ761'), '2026-08-22 09:30:00', '2026-08-22 12:00:00');
+SET @sc_OZ761_20260822 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ761_20260822, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260822, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260822, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260822, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260822, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260822, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260822, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260822, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260822, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260822, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260822, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260822, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ761_20260822, 'BUSINESS', 616300),
+  (@sc_OZ761_20260822, 'ECONOMY', 208500);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ761'), '2026-08-23 09:30:00', '2026-08-23 12:00:00');
+SET @sc_OZ761_20260823 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ761_20260823, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260823, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260823, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260823, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260823, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260823, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260823, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260823, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260823, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260823, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260823, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260823, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ761_20260823, 'BUSINESS', 560500),
+  (@sc_OZ761_20260823, 'ECONOMY', 208300);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ761'), '2026-08-24 09:30:00', '2026-08-24 12:00:00');
+SET @sc_OZ761_20260824 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ761_20260824, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20260824, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260824, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260824, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260824, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260824, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260824, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260824, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260824, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260824, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260824, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260824, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ761_20260824, 'BUSINESS', 511600),
+  (@sc_OZ761_20260824, 'ECONOMY', 225800);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ761'), '2026-08-25 09:30:00', '2026-08-25 12:00:00');
+SET @sc_OZ761_20260825 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ761_20260825, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20260825, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20260825, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20260825, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260825, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260825, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260825, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260825, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260825, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260825, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260825, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260825, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ761_20260825, 'BUSINESS', 561200),
+  (@sc_OZ761_20260825, 'ECONOMY', 223700);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ761'), '2026-08-26 09:30:00', '2026-08-26 12:00:00');
+SET @sc_OZ761_20260826 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ761_20260826, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20260826, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260826, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260826, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260826, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260826, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260826, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260826, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260826, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260826, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260826, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260826, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ761_20260826, 'BUSINESS', 589200),
+  (@sc_OZ761_20260826, 'ECONOMY', 218600);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ761'), '2026-08-27 09:30:00', '2026-08-27 12:00:00');
+SET @sc_OZ761_20260827 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ761_20260827, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260827, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260827, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20260827, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260827, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260827, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260827, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260827, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260827, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260827, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260827, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260827, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ761_20260827, 'BUSINESS', 548600),
+  (@sc_OZ761_20260827, 'ECONOMY', 208200);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ761'), '2026-08-28 09:30:00', '2026-08-28 12:00:00');
+SET @sc_OZ761_20260828 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ761_20260828, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20260828, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20260828, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20260828, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260828, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260828, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260828, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260828, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260828, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260828, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260828, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260828, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ761_20260828, 'BUSINESS', 508700),
+  (@sc_OZ761_20260828, 'ECONOMY', 226200);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ761'), '2026-08-29 09:30:00', '2026-08-29 12:00:00');
+SET @sc_OZ761_20260829 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ761_20260829, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260829, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260829, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260829, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260829, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260829, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260829, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260829, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260829, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260829, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260829, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260829, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ761_20260829, 'BUSINESS', 544200),
+  (@sc_OZ761_20260829, 'ECONOMY', 233300);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ761'), '2026-08-30 09:30:00', '2026-08-30 12:00:00');
+SET @sc_OZ761_20260830 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ761_20260830, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260830, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260830, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260830, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260830, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260830, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260830, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260830, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260830, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260830, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260830, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260830, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ761_20260830, 'BUSINESS', 628300),
+  (@sc_OZ761_20260830, 'ECONOMY', 214700);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ761'), '2026-08-31 09:30:00', '2026-08-31 12:00:00');
+SET @sc_OZ761_20260831 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ761_20260831, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260831, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260831, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260831, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260831, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260831, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260831, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260831, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260831, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260831, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260831, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260831, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ761_20260831, 'BUSINESS', 524600),
+  (@sc_OZ761_20260831, 'ECONOMY', 204100);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ761'), '2026-09-01 09:30:00', '2026-09-01 12:00:00');
+SET @sc_OZ761_20260901 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ761_20260901, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20260901, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20260901, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260901, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260901, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260901, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260901, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260901, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260901, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260901, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260901, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260901, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ761_20260901, 'BUSINESS', 590300),
+  (@sc_OZ761_20260901, 'ECONOMY', 230500);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ761'), '2026-09-02 09:30:00', '2026-09-02 12:00:00');
+SET @sc_OZ761_20260902 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ761_20260902, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260902, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20260902, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260902, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260902, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260902, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260902, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260902, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260902, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260902, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260902, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260902, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ761_20260902, 'BUSINESS', 596800),
+  (@sc_OZ761_20260902, 'ECONOMY', 229500);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ761'), '2026-09-03 09:30:00', '2026-09-03 12:00:00');
+SET @sc_OZ761_20260903 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ761_20260903, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20260903, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260903, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260903, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260903, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260903, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260903, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260903, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260903, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260903, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260903, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260903, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ761_20260903, 'BUSINESS', 540000),
+  (@sc_OZ761_20260903, 'ECONOMY', 248200);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ761'), '2026-09-04 09:30:00', '2026-09-04 12:00:00');
+SET @sc_OZ761_20260904 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ761_20260904, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20260904, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20260904, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20260904, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260904, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260904, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260904, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260904, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260904, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260904, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260904, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260904, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ761_20260904, 'BUSINESS', 622600),
+  (@sc_OZ761_20260904, 'ECONOMY', 203500);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ761'), '2026-09-05 09:30:00', '2026-09-05 12:00:00');
+SET @sc_OZ761_20260905 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ761_20260905, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20260905, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20260905, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260905, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260905, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260905, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260905, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260905, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260905, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260905, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260905, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260905, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ761_20260905, 'BUSINESS', 501000),
+  (@sc_OZ761_20260905, 'ECONOMY', 245700);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ761'), '2026-09-06 09:30:00', '2026-09-06 12:00:00');
+SET @sc_OZ761_20260906 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ761_20260906, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260906, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260906, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260906, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260906, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260906, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260906, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260906, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260906, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260906, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260906, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260906, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ761_20260906, 'BUSINESS', 629000),
+  (@sc_OZ761_20260906, 'ECONOMY', 205300);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ761'), '2026-09-07 09:30:00', '2026-09-07 12:00:00');
+SET @sc_OZ761_20260907 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ761_20260907, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260907, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20260907, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20260907, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260907, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260907, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260907, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260907, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260907, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260907, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260907, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260907, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ761_20260907, 'BUSINESS', 568400),
+  (@sc_OZ761_20260907, 'ECONOMY', 224900);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ761'), '2026-09-08 09:30:00', '2026-09-08 12:00:00');
+SET @sc_OZ761_20260908 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ761_20260908, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260908, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20260908, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20260908, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260908, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260908, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260908, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260908, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260908, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260908, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260908, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260908, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ761_20260908, 'BUSINESS', 521000),
+  (@sc_OZ761_20260908, 'ECONOMY', 219900);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ761'), '2026-09-09 09:30:00', '2026-09-09 12:00:00');
+SET @sc_OZ761_20260909 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ761_20260909, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20260909, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20260909, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20260909, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260909, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260909, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260909, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260909, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260909, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260909, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260909, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260909, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ761_20260909, 'BUSINESS', 572600),
+  (@sc_OZ761_20260909, 'ECONOMY', 240500);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ761'), '2026-09-10 09:30:00', '2026-09-10 12:00:00');
+SET @sc_OZ761_20260910 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ761_20260910, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20260910, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20260910, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260910, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260910, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260910, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260910, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260910, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260910, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260910, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260910, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260910, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ761_20260910, 'BUSINESS', 591100),
+  (@sc_OZ761_20260910, 'ECONOMY', 211800);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ761'), '2026-09-11 09:30:00', '2026-09-11 12:00:00');
+SET @sc_OZ761_20260911 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ761_20260911, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260911, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260911, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260911, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260911, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260911, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260911, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260911, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260911, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260911, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260911, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260911, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ761_20260911, 'BUSINESS', 564700),
+  (@sc_OZ761_20260911, 'ECONOMY', 227700);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ761'), '2026-09-12 09:30:00', '2026-09-12 12:00:00');
+SET @sc_OZ761_20260912 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ761_20260912, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20260912, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20260912, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260912, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260912, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260912, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260912, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260912, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260912, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260912, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260912, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260912, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ761_20260912, 'BUSINESS', 632200),
+  (@sc_OZ761_20260912, 'ECONOMY', 214600);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ761'), '2026-09-13 09:30:00', '2026-09-13 12:00:00');
+SET @sc_OZ761_20260913 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ761_20260913, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260913, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20260913, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20260913, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260913, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260913, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260913, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260913, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260913, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260913, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260913, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260913, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ761_20260913, 'BUSINESS', 556900),
+  (@sc_OZ761_20260913, 'ECONOMY', 239500);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ761'), '2026-09-14 09:30:00', '2026-09-14 12:00:00');
+SET @sc_OZ761_20260914 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ761_20260914, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20260914, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260914, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20260914, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260914, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260914, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260914, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260914, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260914, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260914, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260914, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260914, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ761_20260914, 'BUSINESS', 602100),
+  (@sc_OZ761_20260914, 'ECONOMY', 220600);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ761'), '2026-09-15 09:30:00', '2026-09-15 12:00:00');
+SET @sc_OZ761_20260915 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ761_20260915, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20260915, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260915, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20260915, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260915, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260915, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260915, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260915, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260915, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260915, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260915, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260915, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ761_20260915, 'BUSINESS', 626500),
+  (@sc_OZ761_20260915, 'ECONOMY', 237900);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ761'), '2026-09-16 09:30:00', '2026-09-16 12:00:00');
+SET @sc_OZ761_20260916 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ761_20260916, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260916, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20260916, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20260916, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260916, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260916, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260916, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260916, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260916, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260916, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260916, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260916, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ761_20260916, 'BUSINESS', 499000),
+  (@sc_OZ761_20260916, 'ECONOMY', 227500);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ761'), '2026-09-17 09:30:00', '2026-09-17 12:00:00');
+SET @sc_OZ761_20260917 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ761_20260917, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20260917, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260917, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20260917, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260917, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260917, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260917, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260917, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260917, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260917, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260917, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260917, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ761_20260917, 'BUSINESS', 560800),
+  (@sc_OZ761_20260917, 'ECONOMY', 212400);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ761'), '2026-09-18 09:30:00', '2026-09-18 12:00:00');
+SET @sc_OZ761_20260918 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ761_20260918, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20260918, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20260918, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260918, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260918, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260918, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260918, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260918, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260918, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260918, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260918, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260918, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ761_20260918, 'BUSINESS', 597800),
+  (@sc_OZ761_20260918, 'ECONOMY', 201600);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ761'), '2026-09-19 09:30:00', '2026-09-19 12:00:00');
+SET @sc_OZ761_20260919 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ761_20260919, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260919, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260919, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260919, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260919, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260919, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260919, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260919, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260919, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260919, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260919, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260919, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ761_20260919, 'BUSINESS', 545000),
+  (@sc_OZ761_20260919, 'ECONOMY', 214500);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ761'), '2026-09-20 09:30:00', '2026-09-20 12:00:00');
+SET @sc_OZ761_20260920 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ761_20260920, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260920, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20260920, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20260920, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260920, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260920, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260920, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260920, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260920, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260920, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260920, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260920, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ761_20260920, 'BUSINESS', 526000),
+  (@sc_OZ761_20260920, 'ECONOMY', 225400);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ761'), '2026-09-21 09:30:00', '2026-09-21 12:00:00');
+SET @sc_OZ761_20260921 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ761_20260921, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260921, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260921, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260921, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260921, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260921, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260921, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260921, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260921, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260921, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260921, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260921, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ761_20260921, 'BUSINESS', 559400),
+  (@sc_OZ761_20260921, 'ECONOMY', 205200);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ761'), '2026-09-22 09:30:00', '2026-09-22 12:00:00');
+SET @sc_OZ761_20260922 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ761_20260922, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260922, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260922, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20260922, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260922, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260922, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260922, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260922, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260922, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260922, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260922, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260922, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ761_20260922, 'BUSINESS', 495700),
+  (@sc_OZ761_20260922, 'ECONOMY', 233500);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ761'), '2026-09-23 09:30:00', '2026-09-23 12:00:00');
+SET @sc_OZ761_20260923 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ761_20260923, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260923, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260923, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260923, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260923, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260923, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260923, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260923, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260923, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260923, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260923, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260923, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ761_20260923, 'BUSINESS', 609100),
+  (@sc_OZ761_20260923, 'ECONOMY', 231200);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ761'), '2026-09-24 09:30:00', '2026-09-24 12:00:00');
+SET @sc_OZ761_20260924 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ761_20260924, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20260924, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20260924, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20260924, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260924, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260924, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260924, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260924, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260924, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260924, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260924, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260924, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ761_20260924, 'BUSINESS', 510300),
+  (@sc_OZ761_20260924, 'ECONOMY', 200200);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ761'), '2026-09-25 09:30:00', '2026-09-25 12:00:00');
+SET @sc_OZ761_20260925 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ761_20260925, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260925, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20260925, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260925, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260925, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260925, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260925, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260925, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260925, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260925, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260925, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260925, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ761_20260925, 'BUSINESS', 534800),
+  (@sc_OZ761_20260925, 'ECONOMY', 213000);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ761'), '2026-09-26 09:30:00', '2026-09-26 12:00:00');
+SET @sc_OZ761_20260926 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ761_20260926, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20260926, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260926, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260926, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260926, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260926, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260926, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260926, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260926, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260926, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260926, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260926, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ761_20260926, 'BUSINESS', 509200),
+  (@sc_OZ761_20260926, 'ECONOMY', 229800);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ761'), '2026-09-27 09:30:00', '2026-09-27 12:00:00');
+SET @sc_OZ761_20260927 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ761_20260927, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260927, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20260927, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20260927, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260927, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260927, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260927, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260927, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260927, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260927, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260927, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260927, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ761_20260927, 'BUSINESS', 613200),
+  (@sc_OZ761_20260927, 'ECONOMY', 232600);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ761'), '2026-09-28 09:30:00', '2026-09-28 12:00:00');
+SET @sc_OZ761_20260928 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ761_20260928, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20260928, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260928, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260928, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260928, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260928, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260928, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260928, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260928, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260928, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260928, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260928, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ761_20260928, 'BUSINESS', 512600),
+  (@sc_OZ761_20260928, 'ECONOMY', 209500);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ761'), '2026-09-29 09:30:00', '2026-09-29 12:00:00');
+SET @sc_OZ761_20260929 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ761_20260929, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260929, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260929, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260929, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260929, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260929, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260929, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260929, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260929, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260929, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260929, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260929, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ761_20260929, 'BUSINESS', 584400),
+  (@sc_OZ761_20260929, 'ECONOMY', 221400);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ761'), '2026-09-30 09:30:00', '2026-09-30 12:00:00');
+SET @sc_OZ761_20260930 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ761_20260930, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20260930, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20260930, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20260930, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260930, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260930, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260930, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260930, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260930, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260930, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20260930, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20260930, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ761_20260930, 'BUSINESS', 563300),
+  (@sc_OZ761_20260930, 'ECONOMY', 241600);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ761'), '2026-10-01 09:30:00', '2026-10-01 12:00:00');
+SET @sc_OZ761_20261001 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ761_20261001, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20261001, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20261001, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20261001, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20261001, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261001, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261001, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20261001, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261001, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20261001, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261001, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261001, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ761_20261001, 'BUSINESS', 547800),
+  (@sc_OZ761_20261001, 'ECONOMY', 235400);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ761'), '2026-10-02 09:30:00', '2026-10-02 12:00:00');
+SET @sc_OZ761_20261002 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ761_20261002, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20261002, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20261002, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20261002, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261002, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261002, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20261002, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261002, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261002, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261002, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261002, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261002, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ761_20261002, 'BUSINESS', 601000),
+  (@sc_OZ761_20261002, 'ECONOMY', 241900);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ761'), '2026-10-03 09:30:00', '2026-10-03 12:00:00');
+SET @sc_OZ761_20261003 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ761_20261003, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20261003, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20261003, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20261003, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261003, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261003, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20261003, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261003, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261003, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20261003, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261003, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261003, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ761_20261003, 'BUSINESS', 502200),
+  (@sc_OZ761_20261003, 'ECONOMY', 216700);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ761'), '2026-10-04 09:30:00', '2026-10-04 12:00:00');
+SET @sc_OZ761_20261004 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ761_20261004, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20261004, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20261004, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20261004, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20261004, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20261004, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20261004, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261004, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20261004, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20261004, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20261004, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20261004, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ761_20261004, 'BUSINESS', 552800),
+  (@sc_OZ761_20261004, 'ECONOMY', 210900);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ761'), '2026-10-05 09:30:00', '2026-10-05 12:00:00');
+SET @sc_OZ761_20261005 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ761_20261005, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20261005, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20261005, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20261005, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261005, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20261005, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20261005, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20261005, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20261005, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261005, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20261005, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261005, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ761_20261005, 'BUSINESS', 552600),
+  (@sc_OZ761_20261005, 'ECONOMY', 248800);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ761'), '2026-10-06 09:30:00', '2026-10-06 12:00:00');
+SET @sc_OZ761_20261006 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ761_20261006, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20261006, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20261006, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20261006, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261006, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261006, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261006, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261006, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261006, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261006, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261006, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261006, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ761_20261006, 'BUSINESS', 540500),
+  (@sc_OZ761_20261006, 'ECONOMY', 229500);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ761'), '2026-10-07 09:30:00', '2026-10-07 12:00:00');
+SET @sc_OZ761_20261007 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ761_20261007, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20261007, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20261007, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20261007, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261007, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261007, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261007, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261007, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20261007, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20261007, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261007, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20261007, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ761_20261007, 'BUSINESS', 604600),
+  (@sc_OZ761_20261007, 'ECONOMY', 220300);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ761'), '2026-10-08 09:30:00', '2026-10-08 12:00:00');
+SET @sc_OZ761_20261008 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ761_20261008, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20261008, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20261008, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20261008, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20261008, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261008, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20261008, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20261008, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261008, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261008, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20261008, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261008, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ761_20261008, 'BUSINESS', 592500),
+  (@sc_OZ761_20261008, 'ECONOMY', 204700);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ761'), '2026-10-09 09:30:00', '2026-10-09 12:00:00');
+SET @sc_OZ761_20261009 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ761_20261009, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20261009, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20261009, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20261009, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261009, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20261009, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261009, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261009, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20261009, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20261009, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261009, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261009, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ761_20261009, 'BUSINESS', 498700),
+  (@sc_OZ761_20261009, 'ECONOMY', 223800);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ761'), '2026-10-10 09:30:00', '2026-10-10 12:00:00');
+SET @sc_OZ761_20261010 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ761_20261010, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20261010, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20261010, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20261010, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20261010, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20261010, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261010, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20261010, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20261010, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20261010, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20261010, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261010, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ761_20261010, 'BUSINESS', 623200),
+  (@sc_OZ761_20261010, 'ECONOMY', 251700);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ761'), '2026-10-11 09:30:00', '2026-10-11 12:00:00');
+SET @sc_OZ761_20261011 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ761_20261011, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20261011, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20261011, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20261011, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261011, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261011, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261011, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261011, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20261011, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261011, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20261011, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20261011, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ761_20261011, 'BUSINESS', 590100),
+  (@sc_OZ761_20261011, 'ECONOMY', 212900);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ761'), '2026-10-12 09:30:00', '2026-10-12 12:00:00');
+SET @sc_OZ761_20261012 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ761_20261012, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20261012, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20261012, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20261012, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261012, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20261012, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20261012, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261012, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261012, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261012, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261012, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261012, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ761_20261012, 'BUSINESS', 496100),
+  (@sc_OZ761_20261012, 'ECONOMY', 207200);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ761'), '2026-10-13 09:30:00', '2026-10-13 12:00:00');
+SET @sc_OZ761_20261013 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ761_20261013, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20261013, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20261013, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20261013, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20261013, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261013, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261013, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261013, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261013, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261013, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261013, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261013, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ761_20261013, 'BUSINESS', 613400),
+  (@sc_OZ761_20261013, 'ECONOMY', 235200);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ761'), '2026-10-14 09:30:00', '2026-10-14 12:00:00');
+SET @sc_OZ761_20261014 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ761_20261014, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20261014, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20261014, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20261014, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261014, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261014, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261014, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20261014, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261014, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261014, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261014, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261014, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ761_20261014, 'BUSINESS', 546400),
+  (@sc_OZ761_20261014, 'ECONOMY', 221600);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ761'), '2026-10-15 09:30:00', '2026-10-15 12:00:00');
+SET @sc_OZ761_20261015 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ761_20261015, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20261015, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20261015, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20261015, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20261015, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20261015, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20261015, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20261015, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20261015, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20261015, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20261015, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20261015, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ761_20261015, 'BUSINESS', 571200),
+  (@sc_OZ761_20261015, 'ECONOMY', 220200);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ761'), '2026-10-16 09:30:00', '2026-10-16 12:00:00');
+SET @sc_OZ761_20261016 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ761_20261016, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20261016, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20261016, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20261016, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20261016, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261016, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20261016, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20261016, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20261016, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20261016, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261016, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261016, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ761_20261016, 'BUSINESS', 609900),
+  (@sc_OZ761_20261016, 'ECONOMY', 231800);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ761'), '2026-10-17 09:30:00', '2026-10-17 12:00:00');
+SET @sc_OZ761_20261017 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ761_20261017, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20261017, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20261017, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_OZ761_20261017, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20261017, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20261017, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20261017, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261017, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20261017, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261017, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ761_20261017, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261017, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ761_20261017, 'BUSINESS', 597100),
+  (@sc_OZ761_20261017, 'ECONOMY', 252000);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ761'), '2026-10-18 09:30:00', '2026-10-18 12:00:00');
+SET @sc_OZ761_20261018 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ761_20261018, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20261018, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20261018, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ761_20261018, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261018, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261018, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261018, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261018, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261018, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261018, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261018, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ761_20261018, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ761_20261018, 'BUSINESS', 551300),
+  (@sc_OZ761_20261018, 'ECONOMY', 225500);
+
+-- OZ762 BKK -> HKG
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ762'), '2026-08-20 14:00:00', '2026-08-20 16:30:00');
+SET @sc_OZ762_20260820 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ762_20260820, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_OZ762_20260820, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_OZ762_20260820, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260820, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260820, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260820, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260820, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260820, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260820, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260820, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260820, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260820, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ762_20260820, 'BUSINESS', 619100),
+  (@sc_OZ762_20260820, 'ECONOMY', 226500);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ762'), '2026-08-21 14:00:00', '2026-08-21 16:30:00');
+SET @sc_OZ762_20260821 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ762_20260821, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260821, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260821, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260821, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260821, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260821, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260821, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260821, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260821, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260821, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260821, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260821, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ762_20260821, 'BUSINESS', 523100),
+  (@sc_OZ762_20260821, 'ECONOMY', 222200);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ762'), '2026-08-22 14:00:00', '2026-08-22 16:30:00');
+SET @sc_OZ762_20260822 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ762_20260822, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_OZ762_20260822, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260822, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260822, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260822, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260822, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260822, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260822, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260822, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260822, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260822, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260822, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ762_20260822, 'BUSINESS', 491400),
+  (@sc_OZ762_20260822, 'ECONOMY', 242900);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ762'), '2026-08-23 14:00:00', '2026-08-23 16:30:00');
+SET @sc_OZ762_20260823 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ762_20260823, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260823, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260823, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260823, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260823, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260823, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260823, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260823, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260823, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260823, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260823, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260823, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ762_20260823, 'BUSINESS', 486500),
+  (@sc_OZ762_20260823, 'ECONOMY', 242900);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ762'), '2026-08-24 14:00:00', '2026-08-24 16:30:00');
+SET @sc_OZ762_20260824 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ762_20260824, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260824, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260824, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_OZ762_20260824, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260824, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260824, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260824, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260824, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260824, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260824, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260824, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260824, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ762_20260824, 'BUSINESS', 514300),
+  (@sc_OZ762_20260824, 'ECONOMY', 202600);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ762'), '2026-08-25 14:00:00', '2026-08-25 16:30:00');
+SET @sc_OZ762_20260825 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ762_20260825, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_OZ762_20260825, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260825, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_OZ762_20260825, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260825, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260825, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260825, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260825, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260825, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260825, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260825, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260825, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ762_20260825, 'BUSINESS', 499700),
+  (@sc_OZ762_20260825, 'ECONOMY', 231200);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ762'), '2026-08-26 14:00:00', '2026-08-26 16:30:00');
+SET @sc_OZ762_20260826 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ762_20260826, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_OZ762_20260826, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_OZ762_20260826, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_OZ762_20260826, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260826, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260826, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260826, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260826, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260826, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260826, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260826, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260826, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ762_20260826, 'BUSINESS', 609700),
+  (@sc_OZ762_20260826, 'ECONOMY', 207400);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ762'), '2026-08-27 14:00:00', '2026-08-27 16:30:00');
+SET @sc_OZ762_20260827 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ762_20260827, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_OZ762_20260827, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260827, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_OZ762_20260827, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260827, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260827, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260827, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260827, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260827, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260827, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260827, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260827, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ762_20260827, 'BUSINESS', 522500),
+  (@sc_OZ762_20260827, 'ECONOMY', 240800);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ762'), '2026-08-28 14:00:00', '2026-08-28 16:30:00');
+SET @sc_OZ762_20260828 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ762_20260828, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_OZ762_20260828, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_OZ762_20260828, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260828, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260828, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260828, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260828, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260828, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260828, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260828, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260828, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260828, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ762_20260828, 'BUSINESS', 565100),
+  (@sc_OZ762_20260828, 'ECONOMY', 204900);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ762'), '2026-08-29 14:00:00', '2026-08-29 16:30:00');
+SET @sc_OZ762_20260829 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ762_20260829, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260829, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_OZ762_20260829, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260829, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260829, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260829, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260829, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260829, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260829, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260829, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260829, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260829, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ762_20260829, 'BUSINESS', 611300),
+  (@sc_OZ762_20260829, 'ECONOMY', 219800);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ762'), '2026-08-30 14:00:00', '2026-08-30 16:30:00');
+SET @sc_OZ762_20260830 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ762_20260830, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260830, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260830, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260830, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260830, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260830, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260830, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260830, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260830, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260830, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260830, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260830, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ762_20260830, 'BUSINESS', 604400),
+  (@sc_OZ762_20260830, 'ECONOMY', 234500);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ762'), '2026-08-31 14:00:00', '2026-08-31 16:30:00');
+SET @sc_OZ762_20260831 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ762_20260831, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_OZ762_20260831, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_OZ762_20260831, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_OZ762_20260831, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260831, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260831, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260831, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260831, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260831, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260831, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260831, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260831, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ762_20260831, 'BUSINESS', 558700),
+  (@sc_OZ762_20260831, 'ECONOMY', 206200);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ762'), '2026-09-01 14:00:00', '2026-09-01 16:30:00');
+SET @sc_OZ762_20260901 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ762_20260901, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_OZ762_20260901, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260901, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_OZ762_20260901, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260901, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260901, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260901, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260901, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260901, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260901, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260901, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260901, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ762_20260901, 'BUSINESS', 538400),
+  (@sc_OZ762_20260901, 'ECONOMY', 214600);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ762'), '2026-09-02 14:00:00', '2026-09-02 16:30:00');
+SET @sc_OZ762_20260902 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ762_20260902, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260902, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260902, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260902, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260902, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260902, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260902, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260902, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260902, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260902, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260902, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260902, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ762_20260902, 'BUSINESS', 535900),
+  (@sc_OZ762_20260902, 'ECONOMY', 201000);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ762'), '2026-09-03 14:00:00', '2026-09-03 16:30:00');
+SET @sc_OZ762_20260903 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ762_20260903, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260903, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_OZ762_20260903, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_OZ762_20260903, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260903, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260903, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260903, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260903, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260903, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260903, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260903, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260903, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ762_20260903, 'BUSINESS', 544100),
+  (@sc_OZ762_20260903, 'ECONOMY', 202600);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ762'), '2026-09-04 14:00:00', '2026-09-04 16:30:00');
+SET @sc_OZ762_20260904 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ762_20260904, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_OZ762_20260904, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_OZ762_20260904, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260904, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260904, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260904, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260904, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260904, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260904, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260904, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260904, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260904, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ762_20260904, 'BUSINESS', 546100),
+  (@sc_OZ762_20260904, 'ECONOMY', 204600);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ762'), '2026-09-05 14:00:00', '2026-09-05 16:30:00');
+SET @sc_OZ762_20260905 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ762_20260905, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260905, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260905, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260905, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260905, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260905, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260905, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260905, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260905, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260905, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260905, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260905, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ762_20260905, 'BUSINESS', 603500),
+  (@sc_OZ762_20260905, 'ECONOMY', 201800);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ762'), '2026-09-06 14:00:00', '2026-09-06 16:30:00');
+SET @sc_OZ762_20260906 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ762_20260906, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260906, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_OZ762_20260906, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_OZ762_20260906, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260906, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260906, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260906, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260906, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260906, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260906, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260906, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260906, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ762_20260906, 'BUSINESS', 556000),
+  (@sc_OZ762_20260906, 'ECONOMY', 228800);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ762'), '2026-09-07 14:00:00', '2026-09-07 16:30:00');
+SET @sc_OZ762_20260907 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ762_20260907, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_OZ762_20260907, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_OZ762_20260907, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260907, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260907, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260907, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260907, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260907, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260907, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260907, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260907, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260907, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ762_20260907, 'BUSINESS', 599600),
+  (@sc_OZ762_20260907, 'ECONOMY', 218800);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ762'), '2026-09-08 14:00:00', '2026-09-08 16:30:00');
+SET @sc_OZ762_20260908 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ762_20260908, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260908, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_OZ762_20260908, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260908, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260908, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260908, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260908, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260908, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260908, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260908, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260908, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260908, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ762_20260908, 'BUSINESS', 503500),
+  (@sc_OZ762_20260908, 'ECONOMY', 212200);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ762'), '2026-09-09 14:00:00', '2026-09-09 16:30:00');
+SET @sc_OZ762_20260909 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ762_20260909, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260909, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260909, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260909, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260909, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260909, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260909, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260909, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260909, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260909, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260909, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260909, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ762_20260909, 'BUSINESS', 533100),
+  (@sc_OZ762_20260909, 'ECONOMY', 229600);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ762'), '2026-09-10 14:00:00', '2026-09-10 16:30:00');
+SET @sc_OZ762_20260910 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ762_20260910, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260910, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260910, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260910, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260910, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260910, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260910, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260910, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260910, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260910, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260910, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260910, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ762_20260910, 'BUSINESS', 489700),
+  (@sc_OZ762_20260910, 'ECONOMY', 196300);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ762'), '2026-09-11 14:00:00', '2026-09-11 16:30:00');
+SET @sc_OZ762_20260911 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ762_20260911, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260911, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260911, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260911, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260911, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260911, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260911, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260911, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260911, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260911, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260911, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260911, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ762_20260911, 'BUSINESS', 617100),
+  (@sc_OZ762_20260911, 'ECONOMY', 214400);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ762'), '2026-09-12 14:00:00', '2026-09-12 16:30:00');
+SET @sc_OZ762_20260912 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ762_20260912, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_OZ762_20260912, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260912, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260912, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260912, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260912, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260912, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260912, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260912, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260912, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260912, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260912, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ762_20260912, 'BUSINESS', 528300),
+  (@sc_OZ762_20260912, 'ECONOMY', 235500);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ762'), '2026-09-13 14:00:00', '2026-09-13 16:30:00');
+SET @sc_OZ762_20260913 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ762_20260913, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260913, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260913, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260913, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260913, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260913, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260913, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260913, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260913, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260913, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260913, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260913, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ762_20260913, 'BUSINESS', 500400),
+  (@sc_OZ762_20260913, 'ECONOMY', 242800);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ762'), '2026-09-14 14:00:00', '2026-09-14 16:30:00');
+SET @sc_OZ762_20260914 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ762_20260914, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_OZ762_20260914, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_OZ762_20260914, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_OZ762_20260914, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260914, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260914, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260914, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260914, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260914, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260914, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260914, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260914, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ762_20260914, 'BUSINESS', 589900),
+  (@sc_OZ762_20260914, 'ECONOMY', 235400);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ762'), '2026-09-15 14:00:00', '2026-09-15 16:30:00');
+SET @sc_OZ762_20260915 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ762_20260915, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260915, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260915, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260915, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260915, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260915, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260915, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260915, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260915, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260915, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260915, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260915, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ762_20260915, 'BUSINESS', 602400),
+  (@sc_OZ762_20260915, 'ECONOMY', 230000);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ762'), '2026-09-16 14:00:00', '2026-09-16 16:30:00');
+SET @sc_OZ762_20260916 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ762_20260916, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260916, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260916, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260916, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260916, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260916, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260916, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260916, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260916, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260916, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260916, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260916, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ762_20260916, 'BUSINESS', 516000),
+  (@sc_OZ762_20260916, 'ECONOMY', 223400);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ762'), '2026-09-17 14:00:00', '2026-09-17 16:30:00');
+SET @sc_OZ762_20260917 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ762_20260917, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260917, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_OZ762_20260917, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_OZ762_20260917, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260917, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260917, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260917, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260917, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260917, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260917, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260917, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260917, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ762_20260917, 'BUSINESS', 494800),
+  (@sc_OZ762_20260917, 'ECONOMY', 226800);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ762'), '2026-09-18 14:00:00', '2026-09-18 16:30:00');
+SET @sc_OZ762_20260918 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ762_20260918, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260918, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260918, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260918, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260918, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260918, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260918, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260918, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260918, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260918, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260918, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260918, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ762_20260918, 'BUSINESS', 516400),
+  (@sc_OZ762_20260918, 'ECONOMY', 213200);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ762'), '2026-09-19 14:00:00', '2026-09-19 16:30:00');
+SET @sc_OZ762_20260919 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ762_20260919, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260919, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260919, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_OZ762_20260919, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260919, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260919, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260919, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260919, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260919, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260919, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260919, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260919, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ762_20260919, 'BUSINESS', 493500),
+  (@sc_OZ762_20260919, 'ECONOMY', 226400);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ762'), '2026-09-20 14:00:00', '2026-09-20 16:30:00');
+SET @sc_OZ762_20260920 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ762_20260920, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_OZ762_20260920, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260920, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260920, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260920, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260920, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260920, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260920, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260920, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260920, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260920, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260920, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ762_20260920, 'BUSINESS', 593500),
+  (@sc_OZ762_20260920, 'ECONOMY', 202400);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ762'), '2026-09-21 14:00:00', '2026-09-21 16:30:00');
+SET @sc_OZ762_20260921 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ762_20260921, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_OZ762_20260921, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_OZ762_20260921, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_OZ762_20260921, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260921, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260921, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260921, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260921, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260921, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260921, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260921, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260921, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ762_20260921, 'BUSINESS', 604100),
+  (@sc_OZ762_20260921, 'ECONOMY', 239600);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ762'), '2026-09-22 14:00:00', '2026-09-22 16:30:00');
+SET @sc_OZ762_20260922 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ762_20260922, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260922, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260922, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_OZ762_20260922, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260922, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260922, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260922, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260922, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260922, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260922, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260922, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260922, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ762_20260922, 'BUSINESS', 487800),
+  (@sc_OZ762_20260922, 'ECONOMY', 234300);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ762'), '2026-09-23 14:00:00', '2026-09-23 16:30:00');
+SET @sc_OZ762_20260923 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ762_20260923, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260923, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260923, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260923, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260923, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260923, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260923, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260923, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260923, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260923, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260923, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260923, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ762_20260923, 'BUSINESS', 502700),
+  (@sc_OZ762_20260923, 'ECONOMY', 211500);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ762'), '2026-09-24 14:00:00', '2026-09-24 16:30:00');
+SET @sc_OZ762_20260924 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ762_20260924, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260924, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260924, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_OZ762_20260924, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260924, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260924, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260924, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260924, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260924, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260924, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260924, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260924, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ762_20260924, 'BUSINESS', 503500),
+  (@sc_OZ762_20260924, 'ECONOMY', 195100);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ762'), '2026-09-25 14:00:00', '2026-09-25 16:30:00');
+SET @sc_OZ762_20260925 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ762_20260925, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_OZ762_20260925, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260925, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_OZ762_20260925, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260925, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260925, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260925, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260925, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260925, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260925, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260925, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260925, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ762_20260925, 'BUSINESS', 492200),
+  (@sc_OZ762_20260925, 'ECONOMY', 240500);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ762'), '2026-09-26 14:00:00', '2026-09-26 16:30:00');
+SET @sc_OZ762_20260926 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ762_20260926, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260926, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_OZ762_20260926, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260926, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260926, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260926, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260926, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260926, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260926, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260926, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260926, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260926, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ762_20260926, 'BUSINESS', 595800),
+  (@sc_OZ762_20260926, 'ECONOMY', 236300);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ762'), '2026-09-27 14:00:00', '2026-09-27 16:30:00');
+SET @sc_OZ762_20260927 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ762_20260927, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260927, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260927, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260927, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260927, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260927, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260927, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260927, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260927, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260927, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260927, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260927, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ762_20260927, 'BUSINESS', 611600),
+  (@sc_OZ762_20260927, 'ECONOMY', 220800);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ762'), '2026-09-28 14:00:00', '2026-09-28 16:30:00');
+SET @sc_OZ762_20260928 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ762_20260928, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260928, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_OZ762_20260928, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_OZ762_20260928, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260928, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260928, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260928, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260928, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260928, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260928, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260928, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260928, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ762_20260928, 'BUSINESS', 554100),
+  (@sc_OZ762_20260928, 'ECONOMY', 203100);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ762'), '2026-09-29 14:00:00', '2026-09-29 16:30:00');
+SET @sc_OZ762_20260929 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ762_20260929, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_OZ762_20260929, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_OZ762_20260929, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_OZ762_20260929, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260929, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260929, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260929, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260929, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260929, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260929, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260929, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260929, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ762_20260929, 'BUSINESS', 570800),
+  (@sc_OZ762_20260929, 'ECONOMY', 241300);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ762'), '2026-09-30 14:00:00', '2026-09-30 16:30:00');
+SET @sc_OZ762_20260930 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ762_20260930, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20260930, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_OZ762_20260930, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_OZ762_20260930, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260930, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260930, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260930, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260930, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20260930, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260930, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260930, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20260930, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ762_20260930, 'BUSINESS', 499600),
+  (@sc_OZ762_20260930, 'ECONOMY', 217900);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ762'), '2026-10-01 14:00:00', '2026-10-01 16:30:00');
+SET @sc_OZ762_20261001 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ762_20261001, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20261001, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20261001, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20261001, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261001, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20261001, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261001, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20261001, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261001, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261001, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261001, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261001, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ762_20261001, 'BUSINESS', 502000),
+  (@sc_OZ762_20261001, 'ECONOMY', 222700);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ762'), '2026-10-02 14:00:00', '2026-10-02 16:30:00');
+SET @sc_OZ762_20261002 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ762_20261002, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20261002, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20261002, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20261002, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261002, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261002, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261002, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261002, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261002, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261002, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261002, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20261002, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ762_20261002, 'BUSINESS', 580800),
+  (@sc_OZ762_20261002, 'ECONOMY', 227400);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ762'), '2026-10-03 14:00:00', '2026-10-03 16:30:00');
+SET @sc_OZ762_20261003 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ762_20261003, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_OZ762_20261003, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20261003, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_OZ762_20261003, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261003, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261003, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261003, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261003, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261003, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261003, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261003, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20261003, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ762_20261003, 'BUSINESS', 521200),
+  (@sc_OZ762_20261003, 'ECONOMY', 228400);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ762'), '2026-10-04 14:00:00', '2026-10-04 16:30:00');
+SET @sc_OZ762_20261004 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ762_20261004, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20261004, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20261004, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_OZ762_20261004, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261004, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261004, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261004, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20261004, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261004, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261004, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261004, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261004, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ762_20261004, 'BUSINESS', 533300),
+  (@sc_OZ762_20261004, 'ECONOMY', 224200);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ762'), '2026-10-05 14:00:00', '2026-10-05 16:30:00');
+SET @sc_OZ762_20261005 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ762_20261005, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20261005, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_OZ762_20261005, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_OZ762_20261005, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20261005, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20261005, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261005, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20261005, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261005, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20261005, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261005, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20261005, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ762_20261005, 'BUSINESS', 501800),
+  (@sc_OZ762_20261005, 'ECONOMY', 230900);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ762'), '2026-10-06 14:00:00', '2026-10-06 16:30:00');
+SET @sc_OZ762_20261006 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ762_20261006, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_OZ762_20261006, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_OZ762_20261006, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_OZ762_20261006, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261006, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261006, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20261006, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20261006, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261006, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20261006, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261006, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20261006, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ762_20261006, 'BUSINESS', 527800),
+  (@sc_OZ762_20261006, 'ECONOMY', 200200);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ762'), '2026-10-07 14:00:00', '2026-10-07 16:30:00');
+SET @sc_OZ762_20261007 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ762_20261007, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_OZ762_20261007, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20261007, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20261007, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20261007, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261007, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20261007, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261007, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20261007, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261007, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20261007, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20261007, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ762_20261007, 'BUSINESS', 608100),
+  (@sc_OZ762_20261007, 'ECONOMY', 231900);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ762'), '2026-10-08 14:00:00', '2026-10-08 16:30:00');
+SET @sc_OZ762_20261008 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ762_20261008, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20261008, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_OZ762_20261008, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20261008, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261008, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261008, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20261008, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261008, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261008, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261008, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20261008, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261008, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ762_20261008, 'BUSINESS', 592000),
+  (@sc_OZ762_20261008, 'ECONOMY', 244300);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ762'), '2026-10-09 14:00:00', '2026-10-09 16:30:00');
+SET @sc_OZ762_20261009 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ762_20261009, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_OZ762_20261009, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20261009, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20261009, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261009, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20261009, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20261009, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20261009, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20261009, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20261009, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261009, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20261009, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ762_20261009, 'BUSINESS', 489500),
+  (@sc_OZ762_20261009, 'ECONOMY', 198000);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ762'), '2026-10-10 14:00:00', '2026-10-10 16:30:00');
+SET @sc_OZ762_20261010 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ762_20261010, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20261010, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20261010, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20261010, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261010, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261010, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20261010, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20261010, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261010, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261010, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261010, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261010, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ762_20261010, 'BUSINESS', 531900),
+  (@sc_OZ762_20261010, 'ECONOMY', 198700);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ762'), '2026-10-11 14:00:00', '2026-10-11 16:30:00');
+SET @sc_OZ762_20261011 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ762_20261011, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_OZ762_20261011, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20261011, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20261011, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261011, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261011, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261011, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261011, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20261011, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261011, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261011, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261011, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ762_20261011, 'BUSINESS', 599100),
+  (@sc_OZ762_20261011, 'ECONOMY', 210400);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ762'), '2026-10-12 14:00:00', '2026-10-12 16:30:00');
+SET @sc_OZ762_20261012 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ762_20261012, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20261012, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20261012, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20261012, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261012, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261012, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261012, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261012, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261012, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261012, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261012, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261012, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ762_20261012, 'BUSINESS', 549600),
+  (@sc_OZ762_20261012, 'ECONOMY', 194400);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ762'), '2026-10-13 14:00:00', '2026-10-13 16:30:00');
+SET @sc_OZ762_20261013 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ762_20261013, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20261013, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_OZ762_20261013, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_OZ762_20261013, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261013, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20261013, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20261013, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20261013, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261013, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20261013, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20261013, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261013, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ762_20261013, 'BUSINESS', 496300),
+  (@sc_OZ762_20261013, 'ECONOMY', 208100);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ762'), '2026-10-14 14:00:00', '2026-10-14 16:30:00');
+SET @sc_OZ762_20261014 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ762_20261014, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20261014, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20261014, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20261014, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261014, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261014, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261014, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261014, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261014, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261014, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261014, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261014, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ762_20261014, 'BUSINESS', 594500),
+  (@sc_OZ762_20261014, 'ECONOMY', 199500);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ762'), '2026-10-15 14:00:00', '2026-10-15 16:30:00');
+SET @sc_OZ762_20261015 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ762_20261015, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20261015, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20261015, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20261015, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261015, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261015, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261015, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261015, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261015, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261015, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261015, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261015, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ762_20261015, 'BUSINESS', 529100),
+  (@sc_OZ762_20261015, 'ECONOMY', 231900);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ762'), '2026-10-16 14:00:00', '2026-10-16 16:30:00');
+SET @sc_OZ762_20261016 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ762_20261016, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_OZ762_20261016, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_OZ762_20261016, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_OZ762_20261016, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261016, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20261016, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20261016, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20261016, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20261016, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20261016, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20261016, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20261016, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ762_20261016, 'BUSINESS', 509500),
+  (@sc_OZ762_20261016, 'ECONOMY', 200600);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ762'), '2026-10-17 14:00:00', '2026-10-17 16:30:00');
+SET @sc_OZ762_20261017 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ762_20261017, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_OZ762_20261017, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_OZ762_20261017, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20261017, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261017, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20261017, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261017, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261017, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261017, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20261017, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261017, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261017, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ762_20261017, 'BUSINESS', 544600),
+  (@sc_OZ762_20261017, 'ECONOMY', 219000);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='OZ762'), '2026-10-18 14:00:00', '2026-10-18 16:30:00');
+SET @sc_OZ762_20261018 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_OZ762_20261018, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20261018, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20261018, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_OZ762_20261018, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20261018, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20261018, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20261018, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261018, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20261018, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261018, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_OZ762_20261018, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_OZ762_20261018, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_OZ762_20261018, 'BUSINESS', 522900),
+  (@sc_OZ762_20261018, 'ECONOMY', 240100);
+
+-- KE271 LAX -> JFK
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE271'), '2026-08-20 08:00:00', '2026-08-20 13:30:00');
+SET @sc_KE271_20260820 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE271_20260820, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260820, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260820, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20260820, '1D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260820, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260820, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260820, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260820, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260820, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260820, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260820, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260820, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260820, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE271_20260820, 'BUSINESS', 842300),
+  (@sc_KE271_20260820, 'ECONOMY', 478200);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE271'), '2026-08-21 08:00:00', '2026-08-21 13:30:00');
+SET @sc_KE271_20260821 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE271_20260821, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20260821, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260821, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260821, '1D', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20260821, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260821, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260821, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260821, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260821, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260821, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260821, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260821, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260821, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE271_20260821, 'BUSINESS', 991500),
+  (@sc_KE271_20260821, 'ECONOMY', 453500);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE271'), '2026-08-22 08:00:00', '2026-08-22 13:30:00');
+SET @sc_KE271_20260822 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE271_20260822, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20260822, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260822, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20260822, '1D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260822, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260822, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260822, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260822, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260822, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260822, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260822, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260822, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260822, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE271_20260822, 'BUSINESS', 915000),
+  (@sc_KE271_20260822, 'ECONOMY', 417100);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE271'), '2026-08-23 08:00:00', '2026-08-23 13:30:00');
+SET @sc_KE271_20260823 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE271_20260823, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260823, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20260823, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20260823, '1D', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20260823, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260823, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260823, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260823, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260823, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260823, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260823, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260823, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260823, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE271_20260823, 'BUSINESS', 987500),
+  (@sc_KE271_20260823, 'ECONOMY', 415000);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE271'), '2026-08-24 08:00:00', '2026-08-24 13:30:00');
+SET @sc_KE271_20260824 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE271_20260824, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260824, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260824, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260824, '1D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260824, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260824, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260824, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260824, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260824, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260824, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260824, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260824, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260824, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE271_20260824, 'BUSINESS', 812700),
+  (@sc_KE271_20260824, 'ECONOMY', 477100);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE271'), '2026-08-25 08:00:00', '2026-08-25 13:30:00');
+SET @sc_KE271_20260825 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE271_20260825, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260825, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260825, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260825, '1D', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20260825, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260825, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260825, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260825, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260825, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260825, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260825, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260825, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260825, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE271_20260825, 'BUSINESS', 889500),
+  (@sc_KE271_20260825, 'ECONOMY', 424600);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE271'), '2026-08-26 08:00:00', '2026-08-26 13:30:00');
+SET @sc_KE271_20260826 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE271_20260826, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20260826, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20260826, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260826, '1D', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20260826, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260826, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260826, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260826, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260826, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260826, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260826, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260826, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260826, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE271_20260826, 'BUSINESS', 824100),
+  (@sc_KE271_20260826, 'ECONOMY', 458600);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE271'), '2026-08-27 08:00:00', '2026-08-27 13:30:00');
+SET @sc_KE271_20260827 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE271_20260827, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20260827, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20260827, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260827, '1D', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20260827, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260827, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260827, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260827, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260827, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260827, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260827, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260827, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260827, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE271_20260827, 'BUSINESS', 872300),
+  (@sc_KE271_20260827, 'ECONOMY', 380300);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE271'), '2026-08-28 08:00:00', '2026-08-28 13:30:00');
+SET @sc_KE271_20260828 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE271_20260828, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260828, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260828, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20260828, '1D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260828, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260828, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260828, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260828, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260828, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260828, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260828, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260828, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260828, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE271_20260828, 'BUSINESS', 816200),
+  (@sc_KE271_20260828, 'ECONOMY', 456900);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE271'), '2026-08-29 08:00:00', '2026-08-29 13:30:00');
+SET @sc_KE271_20260829 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE271_20260829, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260829, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260829, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260829, '1D', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20260829, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260829, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260829, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260829, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260829, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260829, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260829, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260829, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260829, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE271_20260829, 'BUSINESS', 884300),
+  (@sc_KE271_20260829, 'ECONOMY', 456700);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE271'), '2026-08-30 08:00:00', '2026-08-30 13:30:00');
+SET @sc_KE271_20260830 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE271_20260830, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20260830, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260830, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260830, '1D', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20260830, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260830, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260830, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260830, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260830, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260830, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260830, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260830, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260830, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE271_20260830, 'BUSINESS', 977600),
+  (@sc_KE271_20260830, 'ECONOMY', 402800);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE271'), '2026-08-31 08:00:00', '2026-08-31 13:30:00');
+SET @sc_KE271_20260831 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE271_20260831, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260831, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260831, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260831, '1D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260831, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260831, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260831, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260831, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260831, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260831, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260831, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260831, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260831, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE271_20260831, 'BUSINESS', 812900),
+  (@sc_KE271_20260831, 'ECONOMY', 445200);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE271'), '2026-09-01 08:00:00', '2026-09-01 13:30:00');
+SET @sc_KE271_20260901 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE271_20260901, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260901, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260901, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260901, '1D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260901, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260901, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260901, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260901, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260901, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260901, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260901, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260901, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260901, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE271_20260901, 'BUSINESS', 972800),
+  (@sc_KE271_20260901, 'ECONOMY', 443200);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE271'), '2026-09-02 08:00:00', '2026-09-02 13:30:00');
+SET @sc_KE271_20260902 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE271_20260902, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260902, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260902, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260902, '1D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260902, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260902, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260902, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260902, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260902, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260902, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260902, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260902, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260902, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE271_20260902, 'BUSINESS', 960600),
+  (@sc_KE271_20260902, 'ECONOMY', 449600);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE271'), '2026-09-03 08:00:00', '2026-09-03 13:30:00');
+SET @sc_KE271_20260903 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE271_20260903, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260903, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260903, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260903, '1D', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20260903, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260903, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260903, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260903, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260903, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260903, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260903, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260903, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260903, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE271_20260903, 'BUSINESS', 1014900),
+  (@sc_KE271_20260903, 'ECONOMY', 415800);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE271'), '2026-09-04 08:00:00', '2026-09-04 13:30:00');
+SET @sc_KE271_20260904 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE271_20260904, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20260904, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260904, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260904, '1D', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20260904, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260904, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260904, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260904, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260904, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260904, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260904, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260904, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260904, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE271_20260904, 'BUSINESS', 940100),
+  (@sc_KE271_20260904, 'ECONOMY', 378600);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE271'), '2026-09-05 08:00:00', '2026-09-05 13:30:00');
+SET @sc_KE271_20260905 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE271_20260905, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260905, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260905, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20260905, '1D', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20260905, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260905, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260905, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260905, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260905, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260905, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260905, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260905, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260905, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE271_20260905, 'BUSINESS', 968100),
+  (@sc_KE271_20260905, 'ECONOMY', 425000);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE271'), '2026-09-06 08:00:00', '2026-09-06 13:30:00');
+SET @sc_KE271_20260906 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE271_20260906, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260906, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260906, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260906, '1D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260906, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260906, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260906, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260906, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260906, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260906, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260906, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260906, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260906, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE271_20260906, 'BUSINESS', 867900),
+  (@sc_KE271_20260906, 'ECONOMY', 444900);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE271'), '2026-09-07 08:00:00', '2026-09-07 13:30:00');
+SET @sc_KE271_20260907 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE271_20260907, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20260907, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260907, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260907, '1D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260907, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260907, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260907, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260907, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260907, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260907, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260907, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260907, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260907, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE271_20260907, 'BUSINESS', 1002900),
+  (@sc_KE271_20260907, 'ECONOMY', 450600);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE271'), '2026-09-08 08:00:00', '2026-09-08 13:30:00');
+SET @sc_KE271_20260908 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE271_20260908, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260908, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260908, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260908, '1D', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20260908, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260908, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260908, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260908, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260908, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260908, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260908, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260908, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260908, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE271_20260908, 'BUSINESS', 967700),
+  (@sc_KE271_20260908, 'ECONOMY', 422500);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE271'), '2026-09-09 08:00:00', '2026-09-09 13:30:00');
+SET @sc_KE271_20260909 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE271_20260909, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260909, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260909, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20260909, '1D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260909, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260909, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260909, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260909, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260909, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260909, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260909, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260909, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260909, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE271_20260909, 'BUSINESS', 920100),
+  (@sc_KE271_20260909, 'ECONOMY', 471600);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE271'), '2026-09-10 08:00:00', '2026-09-10 13:30:00');
+SET @sc_KE271_20260910 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE271_20260910, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260910, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20260910, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260910, '1D', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20260910, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260910, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260910, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260910, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260910, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260910, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260910, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260910, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260910, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE271_20260910, 'BUSINESS', 983400),
+  (@sc_KE271_20260910, 'ECONOMY', 421600);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE271'), '2026-09-11 08:00:00', '2026-09-11 13:30:00');
+SET @sc_KE271_20260911 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE271_20260911, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20260911, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260911, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260911, '1D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260911, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260911, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260911, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260911, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260911, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260911, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260911, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260911, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260911, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE271_20260911, 'BUSINESS', 941200),
+  (@sc_KE271_20260911, 'ECONOMY', 446200);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE271'), '2026-09-12 08:00:00', '2026-09-12 13:30:00');
+SET @sc_KE271_20260912 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE271_20260912, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20260912, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260912, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260912, '1D', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20260912, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260912, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260912, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260912, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260912, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260912, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260912, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260912, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260912, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE271_20260912, 'BUSINESS', 898300),
+  (@sc_KE271_20260912, 'ECONOMY', 441100);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE271'), '2026-09-13 08:00:00', '2026-09-13 13:30:00');
+SET @sc_KE271_20260913 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE271_20260913, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260913, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260913, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260913, '1D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260913, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260913, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260913, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260913, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260913, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260913, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260913, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260913, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260913, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE271_20260913, 'BUSINESS', 1005400),
+  (@sc_KE271_20260913, 'ECONOMY', 445400);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE271'), '2026-09-14 08:00:00', '2026-09-14 13:30:00');
+SET @sc_KE271_20260914 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE271_20260914, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20260914, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20260914, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20260914, '1D', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20260914, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260914, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260914, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260914, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260914, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260914, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260914, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260914, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260914, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE271_20260914, 'BUSINESS', 892500),
+  (@sc_KE271_20260914, 'ECONOMY', 408900);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE271'), '2026-09-15 08:00:00', '2026-09-15 13:30:00');
+SET @sc_KE271_20260915 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE271_20260915, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20260915, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20260915, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260915, '1D', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20260915, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260915, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260915, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260915, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260915, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260915, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260915, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260915, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260915, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE271_20260915, 'BUSINESS', 827900),
+  (@sc_KE271_20260915, 'ECONOMY', 399600);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE271'), '2026-09-16 08:00:00', '2026-09-16 13:30:00');
+SET @sc_KE271_20260916 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE271_20260916, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260916, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20260916, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20260916, '1D', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20260916, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260916, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260916, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260916, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260916, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260916, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260916, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260916, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260916, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE271_20260916, 'BUSINESS', 979900),
+  (@sc_KE271_20260916, 'ECONOMY', 398200);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE271'), '2026-09-17 08:00:00', '2026-09-17 13:30:00');
+SET @sc_KE271_20260917 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE271_20260917, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260917, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260917, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260917, '1D', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20260917, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260917, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260917, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260917, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260917, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260917, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260917, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260917, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260917, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE271_20260917, 'BUSINESS', 893900),
+  (@sc_KE271_20260917, 'ECONOMY', 393500);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE271'), '2026-09-18 08:00:00', '2026-09-18 13:30:00');
+SET @sc_KE271_20260918 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE271_20260918, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20260918, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20260918, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260918, '1D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260918, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260918, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260918, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260918, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260918, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260918, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260918, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260918, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260918, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE271_20260918, 'BUSINESS', 934000),
+  (@sc_KE271_20260918, 'ECONOMY', 462200);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE271'), '2026-09-19 08:00:00', '2026-09-19 13:30:00');
+SET @sc_KE271_20260919 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE271_20260919, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20260919, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20260919, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260919, '1D', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20260919, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260919, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260919, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260919, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260919, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260919, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260919, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260919, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260919, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE271_20260919, 'BUSINESS', 963800),
+  (@sc_KE271_20260919, 'ECONOMY', 386900);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE271'), '2026-09-20 08:00:00', '2026-09-20 13:30:00');
+SET @sc_KE271_20260920 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE271_20260920, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260920, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260920, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260920, '1D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260920, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260920, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260920, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260920, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260920, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260920, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260920, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260920, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260920, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE271_20260920, 'BUSINESS', 819000),
+  (@sc_KE271_20260920, 'ECONOMY', 428300);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE271'), '2026-09-21 08:00:00', '2026-09-21 13:30:00');
+SET @sc_KE271_20260921 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE271_20260921, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260921, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260921, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260921, '1D', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20260921, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260921, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260921, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260921, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260921, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260921, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260921, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260921, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260921, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE271_20260921, 'BUSINESS', 877200),
+  (@sc_KE271_20260921, 'ECONOMY', 447600);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE271'), '2026-09-22 08:00:00', '2026-09-22 13:30:00');
+SET @sc_KE271_20260922 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE271_20260922, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260922, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260922, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260922, '1D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260922, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260922, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260922, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260922, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260922, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260922, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260922, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260922, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260922, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE271_20260922, 'BUSINESS', 1025300),
+  (@sc_KE271_20260922, 'ECONOMY', 443500);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE271'), '2026-09-23 08:00:00', '2026-09-23 13:30:00');
+SET @sc_KE271_20260923 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE271_20260923, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260923, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20260923, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20260923, '1D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260923, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260923, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260923, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260923, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260923, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260923, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260923, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260923, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260923, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE271_20260923, 'BUSINESS', 928400),
+  (@sc_KE271_20260923, 'ECONOMY', 415400);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE271'), '2026-09-24 08:00:00', '2026-09-24 13:30:00');
+SET @sc_KE271_20260924 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE271_20260924, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260924, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260924, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20260924, '1D', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20260924, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260924, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260924, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260924, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260924, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260924, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260924, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260924, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260924, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE271_20260924, 'BUSINESS', 1020200),
+  (@sc_KE271_20260924, 'ECONOMY', 448900);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE271'), '2026-09-25 08:00:00', '2026-09-25 13:30:00');
+SET @sc_KE271_20260925 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE271_20260925, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20260925, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20260925, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260925, '1D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260925, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260925, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260925, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260925, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260925, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260925, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260925, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260925, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260925, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE271_20260925, 'BUSINESS', 1025200),
+  (@sc_KE271_20260925, 'ECONOMY', 419300);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE271'), '2026-09-26 08:00:00', '2026-09-26 13:30:00');
+SET @sc_KE271_20260926 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE271_20260926, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20260926, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260926, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260926, '1D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260926, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260926, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260926, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260926, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260926, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260926, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260926, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260926, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260926, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE271_20260926, 'BUSINESS', 881900),
+  (@sc_KE271_20260926, 'ECONOMY', 418400);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE271'), '2026-09-27 08:00:00', '2026-09-27 13:30:00');
+SET @sc_KE271_20260927 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE271_20260927, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260927, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260927, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260927, '1D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260927, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260927, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260927, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260927, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260927, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260927, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260927, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260927, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260927, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE271_20260927, 'BUSINESS', 1013800),
+  (@sc_KE271_20260927, 'ECONOMY', 447500);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE271'), '2026-09-28 08:00:00', '2026-09-28 13:30:00');
+SET @sc_KE271_20260928 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE271_20260928, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20260928, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20260928, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20260928, '1D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260928, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260928, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260928, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260928, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260928, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260928, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260928, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260928, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260928, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE271_20260928, 'BUSINESS', 1023900),
+  (@sc_KE271_20260928, 'ECONOMY', 418300);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE271'), '2026-09-29 08:00:00', '2026-09-29 13:30:00');
+SET @sc_KE271_20260929 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE271_20260929, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20260929, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260929, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20260929, '1D', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20260929, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260929, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260929, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260929, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260929, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260929, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260929, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260929, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20260929, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE271_20260929, 'BUSINESS', 888100),
+  (@sc_KE271_20260929, 'ECONOMY', 453700);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE271'), '2026-09-30 08:00:00', '2026-09-30 13:30:00');
+SET @sc_KE271_20260930 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE271_20260930, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20260930, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20260930, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20260930, '1D', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20260930, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260930, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260930, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260930, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260930, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260930, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260930, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260930, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20260930, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE271_20260930, 'BUSINESS', 850600),
+  (@sc_KE271_20260930, 'ECONOMY', 449100);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE271'), '2026-10-01 08:00:00', '2026-10-01 13:30:00');
+SET @sc_KE271_20261001 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE271_20261001, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20261001, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20261001, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20261001, '1D', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20261001, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261001, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261001, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261001, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261001, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261001, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261001, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261001, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261001, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE271_20261001, 'BUSINESS', 993300),
+  (@sc_KE271_20261001, 'ECONOMY', 405900);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE271'), '2026-10-02 08:00:00', '2026-10-02 13:30:00');
+SET @sc_KE271_20261002 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE271_20261002, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20261002, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20261002, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20261002, '1D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20261002, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261002, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261002, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261002, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261002, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261002, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261002, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261002, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261002, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE271_20261002, 'BUSINESS', 910300),
+  (@sc_KE271_20261002, 'ECONOMY', 452100);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE271'), '2026-10-03 08:00:00', '2026-10-03 13:30:00');
+SET @sc_KE271_20261003 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE271_20261003, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20261003, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20261003, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20261003, '1D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20261003, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261003, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261003, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261003, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261003, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261003, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261003, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261003, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261003, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE271_20261003, 'BUSINESS', 908600),
+  (@sc_KE271_20261003, 'ECONOMY', 401200);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE271'), '2026-10-04 08:00:00', '2026-10-04 13:30:00');
+SET @sc_KE271_20261004 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE271_20261004, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20261004, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20261004, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20261004, '1D', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20261004, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261004, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261004, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261004, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261004, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261004, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261004, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261004, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261004, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE271_20261004, 'BUSINESS', 834500),
+  (@sc_KE271_20261004, 'ECONOMY', 425800);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE271'), '2026-10-05 08:00:00', '2026-10-05 13:30:00');
+SET @sc_KE271_20261005 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE271_20261005, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20261005, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20261005, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20261005, '1D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20261005, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261005, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261005, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261005, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261005, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261005, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261005, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261005, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261005, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE271_20261005, 'BUSINESS', 924400),
+  (@sc_KE271_20261005, 'ECONOMY', 478600);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE271'), '2026-10-06 08:00:00', '2026-10-06 13:30:00');
+SET @sc_KE271_20261006 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE271_20261006, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20261006, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20261006, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20261006, '1D', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20261006, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261006, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261006, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261006, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261006, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261006, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261006, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261006, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261006, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE271_20261006, 'BUSINESS', 965900),
+  (@sc_KE271_20261006, 'ECONOMY', 461200);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE271'), '2026-10-07 08:00:00', '2026-10-07 13:30:00');
+SET @sc_KE271_20261007 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE271_20261007, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20261007, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20261007, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20261007, '1D', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20261007, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261007, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261007, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261007, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261007, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261007, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261007, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261007, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261007, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE271_20261007, 'BUSINESS', 910800),
+  (@sc_KE271_20261007, 'ECONOMY', 439400);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE271'), '2026-10-08 08:00:00', '2026-10-08 13:30:00');
+SET @sc_KE271_20261008 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE271_20261008, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20261008, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20261008, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20261008, '1D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20261008, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261008, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261008, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261008, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261008, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261008, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261008, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261008, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261008, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE271_20261008, 'BUSINESS', 857200),
+  (@sc_KE271_20261008, 'ECONOMY', 439700);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE271'), '2026-10-09 08:00:00', '2026-10-09 13:30:00');
+SET @sc_KE271_20261009 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE271_20261009, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20261009, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20261009, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20261009, '1D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20261009, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261009, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261009, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261009, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261009, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261009, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261009, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261009, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261009, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE271_20261009, 'BUSINESS', 858500),
+  (@sc_KE271_20261009, 'ECONOMY', 443600);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE271'), '2026-10-10 08:00:00', '2026-10-10 13:30:00');
+SET @sc_KE271_20261010 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE271_20261010, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20261010, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20261010, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20261010, '1D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20261010, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261010, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261010, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261010, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261010, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261010, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261010, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261010, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261010, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE271_20261010, 'BUSINESS', 915200),
+  (@sc_KE271_20261010, 'ECONOMY', 425600);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE271'), '2026-10-11 08:00:00', '2026-10-11 13:30:00');
+SET @sc_KE271_20261011 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE271_20261011, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20261011, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20261011, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20261011, '1D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20261011, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261011, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261011, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261011, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261011, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261011, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261011, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261011, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261011, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE271_20261011, 'BUSINESS', 1033900),
+  (@sc_KE271_20261011, 'ECONOMY', 429700);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE271'), '2026-10-12 08:00:00', '2026-10-12 13:30:00');
+SET @sc_KE271_20261012 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE271_20261012, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20261012, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20261012, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20261012, '1D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20261012, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261012, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261012, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261012, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261012, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261012, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261012, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261012, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261012, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE271_20261012, 'BUSINESS', 827500),
+  (@sc_KE271_20261012, 'ECONOMY', 441300);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE271'), '2026-10-13 08:00:00', '2026-10-13 13:30:00');
+SET @sc_KE271_20261013 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE271_20261013, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20261013, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20261013, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20261013, '1D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20261013, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261013, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261013, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261013, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261013, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261013, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261013, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261013, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261013, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE271_20261013, 'BUSINESS', 906700),
+  (@sc_KE271_20261013, 'ECONOMY', 482900);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE271'), '2026-10-14 08:00:00', '2026-10-14 13:30:00');
+SET @sc_KE271_20261014 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE271_20261014, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20261014, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20261014, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20261014, '1D', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20261014, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261014, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261014, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261014, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261014, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261014, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261014, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261014, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261014, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE271_20261014, 'BUSINESS', 856900),
+  (@sc_KE271_20261014, 'ECONOMY', 383400);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE271'), '2026-10-15 08:00:00', '2026-10-15 13:30:00');
+SET @sc_KE271_20261015 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE271_20261015, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20261015, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20261015, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20261015, '1D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20261015, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261015, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261015, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261015, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261015, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261015, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261015, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261015, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261015, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE271_20261015, 'BUSINESS', 810500),
+  (@sc_KE271_20261015, 'ECONOMY', 420300);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE271'), '2026-10-16 08:00:00', '2026-10-16 13:30:00');
+SET @sc_KE271_20261016 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE271_20261016, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20261016, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20261016, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20261016, '1D', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20261016, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261016, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261016, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261016, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261016, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261016, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261016, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261016, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261016, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE271_20261016, 'BUSINESS', 999700),
+  (@sc_KE271_20261016, 'ECONOMY', 383800);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE271'), '2026-10-17 08:00:00', '2026-10-17 13:30:00');
+SET @sc_KE271_20261017 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE271_20261017, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20261017, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20261017, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20261017, '1D', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20261017, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261017, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261017, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261017, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261017, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261017, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261017, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261017, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261017, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE271_20261017, 'BUSINESS', 859200),
+  (@sc_KE271_20261017, 'ECONOMY', 428800);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE271'), '2026-10-18 08:00:00', '2026-10-18 13:30:00');
+SET @sc_KE271_20261018 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE271_20261018, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20261018, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_KE271_20261018, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20261018, '1D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE271_20261018, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261018, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261018, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_KE271_20261018, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261018, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261018, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261018, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261018, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE271_20261018, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE271_20261018, 'BUSINESS', 905900),
+  (@sc_KE271_20261018, 'ECONOMY', 455200);
+
+-- KE272 JFK -> LAX
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE272'), '2026-08-20 15:00:00', '2026-08-20 21:00:00');
+SET @sc_KE272_20260820 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE272_20260820, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260820, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260820, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260820, '1D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260820, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260820, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260820, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260820, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260820, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260820, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260820, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260820, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260820, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE272_20260820, 'BUSINESS', 897500),
+  (@sc_KE272_20260820, 'ECONOMY', 414700);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE272'), '2026-08-21 15:00:00', '2026-08-21 21:00:00');
+SET @sc_KE272_20260821 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE272_20260821, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260821, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260821, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260821, '1D', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260821, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260821, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260821, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260821, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260821, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260821, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260821, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260821, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260821, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE272_20260821, 'BUSINESS', 853600),
+  (@sc_KE272_20260821, 'ECONOMY', 415000);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE272'), '2026-08-22 15:00:00', '2026-08-22 21:00:00');
+SET @sc_KE272_20260822 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE272_20260822, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260822, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260822, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260822, '1D', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260822, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260822, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260822, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260822, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260822, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260822, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260822, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260822, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260822, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE272_20260822, 'BUSINESS', 878700),
+  (@sc_KE272_20260822, 'ECONOMY', 394000);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE272'), '2026-08-23 15:00:00', '2026-08-23 21:00:00');
+SET @sc_KE272_20260823 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE272_20260823, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260823, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260823, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260823, '1D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260823, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260823, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260823, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260823, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260823, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260823, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260823, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260823, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260823, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE272_20260823, 'BUSINESS', 1011000),
+  (@sc_KE272_20260823, 'ECONOMY', 455500);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE272'), '2026-08-24 15:00:00', '2026-08-24 21:00:00');
+SET @sc_KE272_20260824 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE272_20260824, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260824, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260824, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260824, '1D', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260824, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260824, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260824, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260824, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260824, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260824, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260824, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260824, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260824, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE272_20260824, 'BUSINESS', 833700),
+  (@sc_KE272_20260824, 'ECONOMY', 423200);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE272'), '2026-08-25 15:00:00', '2026-08-25 21:00:00');
+SET @sc_KE272_20260825 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE272_20260825, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260825, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260825, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260825, '1D', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260825, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260825, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260825, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260825, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260825, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260825, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260825, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260825, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260825, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE272_20260825, 'BUSINESS', 898000),
+  (@sc_KE272_20260825, 'ECONOMY', 459800);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE272'), '2026-08-26 15:00:00', '2026-08-26 21:00:00');
+SET @sc_KE272_20260826 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE272_20260826, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260826, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260826, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260826, '1D', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260826, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260826, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260826, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260826, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260826, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260826, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260826, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260826, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260826, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE272_20260826, 'BUSINESS', 851200),
+  (@sc_KE272_20260826, 'ECONOMY', 408500);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE272'), '2026-08-27 15:00:00', '2026-08-27 21:00:00');
+SET @sc_KE272_20260827 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE272_20260827, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260827, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260827, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260827, '1D', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260827, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260827, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260827, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260827, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260827, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260827, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260827, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260827, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260827, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE272_20260827, 'BUSINESS', 962700),
+  (@sc_KE272_20260827, 'ECONOMY', 468800);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE272'), '2026-08-28 15:00:00', '2026-08-28 21:00:00');
+SET @sc_KE272_20260828 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE272_20260828, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260828, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260828, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260828, '1D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260828, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260828, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260828, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260828, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260828, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260828, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260828, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260828, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260828, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE272_20260828, 'BUSINESS', 1003200),
+  (@sc_KE272_20260828, 'ECONOMY', 452300);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE272'), '2026-08-29 15:00:00', '2026-08-29 21:00:00');
+SET @sc_KE272_20260829 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE272_20260829, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260829, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260829, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260829, '1D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260829, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260829, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260829, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260829, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260829, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260829, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260829, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260829, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260829, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE272_20260829, 'BUSINESS', 922300),
+  (@sc_KE272_20260829, 'ECONOMY', 400200);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE272'), '2026-08-30 15:00:00', '2026-08-30 21:00:00');
+SET @sc_KE272_20260830 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE272_20260830, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260830, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260830, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260830, '1D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260830, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260830, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260830, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260830, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260830, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260830, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260830, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260830, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260830, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE272_20260830, 'BUSINESS', 974600),
+  (@sc_KE272_20260830, 'ECONOMY', 371100);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE272'), '2026-08-31 15:00:00', '2026-08-31 21:00:00');
+SET @sc_KE272_20260831 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE272_20260831, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260831, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260831, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260831, '1D', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260831, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260831, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260831, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260831, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260831, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260831, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260831, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260831, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260831, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE272_20260831, 'BUSINESS', 895800),
+  (@sc_KE272_20260831, 'ECONOMY', 459600);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE272'), '2026-09-01 15:00:00', '2026-09-01 21:00:00');
+SET @sc_KE272_20260901 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE272_20260901, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260901, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260901, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260901, '1D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260901, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260901, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260901, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260901, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260901, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260901, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260901, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260901, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260901, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE272_20260901, 'BUSINESS', 936300),
+  (@sc_KE272_20260901, 'ECONOMY', 457300);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE272'), '2026-09-02 15:00:00', '2026-09-02 21:00:00');
+SET @sc_KE272_20260902 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE272_20260902, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260902, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260902, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260902, '1D', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260902, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260902, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260902, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260902, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260902, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260902, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260902, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260902, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260902, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE272_20260902, 'BUSINESS', 793800),
+  (@sc_KE272_20260902, 'ECONOMY', 453400);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE272'), '2026-09-03 15:00:00', '2026-09-03 21:00:00');
+SET @sc_KE272_20260903 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE272_20260903, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260903, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260903, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260903, '1D', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260903, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260903, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260903, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260903, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260903, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260903, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260903, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260903, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260903, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE272_20260903, 'BUSINESS', 850700),
+  (@sc_KE272_20260903, 'ECONOMY', 442200);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE272'), '2026-09-04 15:00:00', '2026-09-04 21:00:00');
+SET @sc_KE272_20260904 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE272_20260904, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260904, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260904, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260904, '1D', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260904, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260904, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260904, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260904, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260904, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260904, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260904, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260904, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260904, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE272_20260904, 'BUSINESS', 824100),
+  (@sc_KE272_20260904, 'ECONOMY', 434100);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE272'), '2026-09-05 15:00:00', '2026-09-05 21:00:00');
+SET @sc_KE272_20260905 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE272_20260905, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260905, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260905, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260905, '1D', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260905, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260905, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260905, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260905, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260905, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260905, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260905, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260905, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260905, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE272_20260905, 'BUSINESS', 950400),
+  (@sc_KE272_20260905, 'ECONOMY', 465300);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE272'), '2026-09-06 15:00:00', '2026-09-06 21:00:00');
+SET @sc_KE272_20260906 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE272_20260906, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260906, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260906, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260906, '1D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260906, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260906, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260906, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260906, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260906, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260906, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260906, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260906, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260906, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE272_20260906, 'BUSINESS', 969800),
+  (@sc_KE272_20260906, 'ECONOMY', 414800);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE272'), '2026-09-07 15:00:00', '2026-09-07 21:00:00');
+SET @sc_KE272_20260907 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE272_20260907, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260907, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260907, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260907, '1D', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260907, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260907, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260907, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260907, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260907, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260907, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260907, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260907, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260907, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE272_20260907, 'BUSINESS', 839800),
+  (@sc_KE272_20260907, 'ECONOMY', 400300);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE272'), '2026-09-08 15:00:00', '2026-09-08 21:00:00');
+SET @sc_KE272_20260908 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE272_20260908, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260908, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260908, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260908, '1D', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260908, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260908, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260908, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260908, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260908, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260908, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260908, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260908, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260908, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE272_20260908, 'BUSINESS', 835500),
+  (@sc_KE272_20260908, 'ECONOMY', 467400);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE272'), '2026-09-09 15:00:00', '2026-09-09 21:00:00');
+SET @sc_KE272_20260909 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE272_20260909, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260909, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260909, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260909, '1D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260909, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260909, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260909, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260909, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260909, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260909, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260909, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260909, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260909, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE272_20260909, 'BUSINESS', 1005600),
+  (@sc_KE272_20260909, 'ECONOMY', 420000);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE272'), '2026-09-10 15:00:00', '2026-09-10 21:00:00');
+SET @sc_KE272_20260910 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE272_20260910, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260910, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260910, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260910, '1D', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260910, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260910, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260910, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260910, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260910, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260910, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260910, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260910, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260910, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE272_20260910, 'BUSINESS', 865400),
+  (@sc_KE272_20260910, 'ECONOMY', 390000);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE272'), '2026-09-11 15:00:00', '2026-09-11 21:00:00');
+SET @sc_KE272_20260911 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE272_20260911, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260911, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260911, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260911, '1D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260911, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260911, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260911, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260911, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260911, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260911, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260911, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260911, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260911, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE272_20260911, 'BUSINESS', 812400),
+  (@sc_KE272_20260911, 'ECONOMY', 456000);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE272'), '2026-09-12 15:00:00', '2026-09-12 21:00:00');
+SET @sc_KE272_20260912 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE272_20260912, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260912, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260912, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260912, '1D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260912, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260912, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260912, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260912, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260912, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260912, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260912, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260912, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260912, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE272_20260912, 'BUSINESS', 994600),
+  (@sc_KE272_20260912, 'ECONOMY', 392200);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE272'), '2026-09-13 15:00:00', '2026-09-13 21:00:00');
+SET @sc_KE272_20260913 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE272_20260913, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260913, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260913, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260913, '1D', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260913, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260913, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260913, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260913, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260913, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260913, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260913, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260913, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260913, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE272_20260913, 'BUSINESS', 829500),
+  (@sc_KE272_20260913, 'ECONOMY', 385800);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE272'), '2026-09-14 15:00:00', '2026-09-14 21:00:00');
+SET @sc_KE272_20260914 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE272_20260914, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260914, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260914, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260914, '1D', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260914, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260914, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260914, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260914, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260914, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260914, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260914, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260914, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260914, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE272_20260914, 'BUSINESS', 866500),
+  (@sc_KE272_20260914, 'ECONOMY', 378200);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE272'), '2026-09-15 15:00:00', '2026-09-15 21:00:00');
+SET @sc_KE272_20260915 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE272_20260915, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260915, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260915, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260915, '1D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260915, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260915, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260915, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260915, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260915, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260915, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260915, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260915, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260915, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE272_20260915, 'BUSINESS', 833600),
+  (@sc_KE272_20260915, 'ECONOMY', 469500);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE272'), '2026-09-16 15:00:00', '2026-09-16 21:00:00');
+SET @sc_KE272_20260916 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE272_20260916, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260916, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260916, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260916, '1D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260916, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260916, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260916, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260916, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260916, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260916, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260916, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260916, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260916, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE272_20260916, 'BUSINESS', 1004700),
+  (@sc_KE272_20260916, 'ECONOMY', 382500);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE272'), '2026-09-17 15:00:00', '2026-09-17 21:00:00');
+SET @sc_KE272_20260917 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE272_20260917, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260917, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260917, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260917, '1D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260917, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260917, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260917, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260917, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260917, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260917, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260917, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260917, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260917, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE272_20260917, 'BUSINESS', 924600),
+  (@sc_KE272_20260917, 'ECONOMY', 372800);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE272'), '2026-09-18 15:00:00', '2026-09-18 21:00:00');
+SET @sc_KE272_20260918 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE272_20260918, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260918, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260918, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260918, '1D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260918, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260918, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260918, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260918, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260918, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260918, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260918, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260918, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260918, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE272_20260918, 'BUSINESS', 912700),
+  (@sc_KE272_20260918, 'ECONOMY', 446300);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE272'), '2026-09-19 15:00:00', '2026-09-19 21:00:00');
+SET @sc_KE272_20260919 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE272_20260919, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260919, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260919, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260919, '1D', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260919, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260919, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260919, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260919, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260919, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260919, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260919, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260919, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260919, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE272_20260919, 'BUSINESS', 934200),
+  (@sc_KE272_20260919, 'ECONOMY', 457500);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE272'), '2026-09-20 15:00:00', '2026-09-20 21:00:00');
+SET @sc_KE272_20260920 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE272_20260920, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260920, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260920, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260920, '1D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260920, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260920, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260920, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260920, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260920, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260920, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260920, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260920, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260920, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE272_20260920, 'BUSINESS', 942000),
+  (@sc_KE272_20260920, 'ECONOMY', 461100);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE272'), '2026-09-21 15:00:00', '2026-09-21 21:00:00');
+SET @sc_KE272_20260921 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE272_20260921, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260921, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260921, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260921, '1D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260921, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260921, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260921, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260921, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260921, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260921, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260921, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260921, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260921, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE272_20260921, 'BUSINESS', 918300),
+  (@sc_KE272_20260921, 'ECONOMY', 385100);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE272'), '2026-09-22 15:00:00', '2026-09-22 21:00:00');
+SET @sc_KE272_20260922 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE272_20260922, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260922, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260922, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260922, '1D', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260922, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260922, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260922, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260922, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260922, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260922, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260922, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260922, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260922, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE272_20260922, 'BUSINESS', 851800),
+  (@sc_KE272_20260922, 'ECONOMY', 379900);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE272'), '2026-09-23 15:00:00', '2026-09-23 21:00:00');
+SET @sc_KE272_20260923 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE272_20260923, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260923, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260923, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260923, '1D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260923, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260923, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260923, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260923, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260923, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260923, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260923, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260923, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260923, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE272_20260923, 'BUSINESS', 981300),
+  (@sc_KE272_20260923, 'ECONOMY', 381800);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE272'), '2026-09-24 15:00:00', '2026-09-24 21:00:00');
+SET @sc_KE272_20260924 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE272_20260924, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260924, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260924, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260924, '1D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260924, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260924, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260924, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260924, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260924, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260924, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260924, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260924, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260924, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE272_20260924, 'BUSINESS', 927300),
+  (@sc_KE272_20260924, 'ECONOMY', 429700);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE272'), '2026-09-25 15:00:00', '2026-09-25 21:00:00');
+SET @sc_KE272_20260925 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE272_20260925, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260925, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260925, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260925, '1D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260925, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260925, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260925, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260925, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260925, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260925, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260925, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260925, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260925, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE272_20260925, 'BUSINESS', 940100),
+  (@sc_KE272_20260925, 'ECONOMY', 471000);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE272'), '2026-09-26 15:00:00', '2026-09-26 21:00:00');
+SET @sc_KE272_20260926 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE272_20260926, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260926, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260926, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260926, '1D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260926, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260926, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260926, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260926, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260926, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260926, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260926, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260926, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260926, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE272_20260926, 'BUSINESS', 827500),
+  (@sc_KE272_20260926, 'ECONOMY', 388500);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE272'), '2026-09-27 15:00:00', '2026-09-27 21:00:00');
+SET @sc_KE272_20260927 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE272_20260927, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260927, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260927, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260927, '1D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260927, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260927, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260927, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260927, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260927, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260927, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260927, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260927, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260927, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE272_20260927, 'BUSINESS', 884900),
+  (@sc_KE272_20260927, 'ECONOMY', 458000);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE272'), '2026-09-28 15:00:00', '2026-09-28 21:00:00');
+SET @sc_KE272_20260928 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE272_20260928, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260928, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260928, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260928, '1D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260928, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260928, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260928, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260928, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260928, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260928, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260928, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260928, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260928, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE272_20260928, 'BUSINESS', 948000),
+  (@sc_KE272_20260928, 'ECONOMY', 444500);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE272'), '2026-09-29 15:00:00', '2026-09-29 21:00:00');
+SET @sc_KE272_20260929 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE272_20260929, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260929, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260929, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260929, '1D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260929, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260929, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260929, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260929, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260929, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260929, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260929, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260929, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260929, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE272_20260929, 'BUSINESS', 945700),
+  (@sc_KE272_20260929, 'ECONOMY', 429000);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE272'), '2026-09-30 15:00:00', '2026-09-30 21:00:00');
+SET @sc_KE272_20260930 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE272_20260930, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260930, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20260930, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260930, '1D', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20260930, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260930, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260930, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260930, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20260930, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260930, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260930, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260930, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20260930, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE272_20260930, 'BUSINESS', 805200),
+  (@sc_KE272_20260930, 'ECONOMY', 376200);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE272'), '2026-10-01 15:00:00', '2026-10-01 21:00:00');
+SET @sc_KE272_20261001 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE272_20261001, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20261001, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20261001, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20261001, '1D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20261001, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261001, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261001, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20261001, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261001, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20261001, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261001, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261001, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20261001, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE272_20261001, 'BUSINESS', 942100),
+  (@sc_KE272_20261001, 'ECONOMY', 434200);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE272'), '2026-10-02 15:00:00', '2026-10-02 21:00:00');
+SET @sc_KE272_20261002 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE272_20261002, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20261002, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20261002, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20261002, '1D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20261002, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20261002, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20261002, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261002, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261002, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20261002, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20261002, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261002, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261002, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE272_20261002, 'BUSINESS', 987900),
+  (@sc_KE272_20261002, 'ECONOMY', 382000);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE272'), '2026-10-03 15:00:00', '2026-10-03 21:00:00');
+SET @sc_KE272_20261003 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE272_20261003, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20261003, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20261003, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20261003, '1D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20261003, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261003, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261003, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261003, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20261003, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261003, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261003, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261003, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20261003, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE272_20261003, 'BUSINESS', 798900),
+  (@sc_KE272_20261003, 'ECONOMY', 410400);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE272'), '2026-10-04 15:00:00', '2026-10-04 21:00:00');
+SET @sc_KE272_20261004 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE272_20261004, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20261004, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20261004, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20261004, '1D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20261004, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261004, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20261004, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20261004, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20261004, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261004, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20261004, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20261004, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20261004, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE272_20261004, 'BUSINESS', 916700),
+  (@sc_KE272_20261004, 'ECONOMY', 389700);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE272'), '2026-10-05 15:00:00', '2026-10-05 21:00:00');
+SET @sc_KE272_20261005 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE272_20261005, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20261005, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20261005, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20261005, '1D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20261005, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20261005, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20261005, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261005, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20261005, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261005, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20261005, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20261005, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261005, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE272_20261005, 'BUSINESS', 942200),
+  (@sc_KE272_20261005, 'ECONOMY', 451000);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE272'), '2026-10-06 15:00:00', '2026-10-06 21:00:00');
+SET @sc_KE272_20261006 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE272_20261006, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20261006, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20261006, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20261006, '1D', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20261006, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20261006, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20261006, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261006, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20261006, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20261006, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20261006, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20261006, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20261006, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE272_20261006, 'BUSINESS', 920300),
+  (@sc_KE272_20261006, 'ECONOMY', 446300);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE272'), '2026-10-07 15:00:00', '2026-10-07 21:00:00');
+SET @sc_KE272_20261007 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE272_20261007, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20261007, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20261007, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20261007, '1D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20261007, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261007, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261007, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261007, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261007, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261007, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261007, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261007, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261007, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE272_20261007, 'BUSINESS', 862700),
+  (@sc_KE272_20261007, 'ECONOMY', 436000);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE272'), '2026-10-08 15:00:00', '2026-10-08 21:00:00');
+SET @sc_KE272_20261008 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE272_20261008, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20261008, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20261008, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20261008, '1D', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20261008, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261008, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261008, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261008, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261008, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20261008, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261008, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20261008, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20261008, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE272_20261008, 'BUSINESS', 828000),
+  (@sc_KE272_20261008, 'ECONOMY', 403500);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE272'), '2026-10-09 15:00:00', '2026-10-09 21:00:00');
+SET @sc_KE272_20261009 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE272_20261009, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20261009, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20261009, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20261009, '1D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20261009, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261009, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20261009, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261009, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261009, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261009, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20261009, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261009, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261009, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE272_20261009, 'BUSINESS', 985700),
+  (@sc_KE272_20261009, 'ECONOMY', 423700);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE272'), '2026-10-10 15:00:00', '2026-10-10 21:00:00');
+SET @sc_KE272_20261010 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE272_20261010, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20261010, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20261010, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20261010, '1D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20261010, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261010, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261010, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20261010, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20261010, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261010, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261010, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261010, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261010, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE272_20261010, 'BUSINESS', 807700),
+  (@sc_KE272_20261010, 'ECONOMY', 399500);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE272'), '2026-10-11 15:00:00', '2026-10-11 21:00:00');
+SET @sc_KE272_20261011 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE272_20261011, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20261011, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20261011, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20261011, '1D', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20261011, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20261011, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261011, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20261011, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261011, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20261011, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20261011, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261011, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20261011, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE272_20261011, 'BUSINESS', 812600),
+  (@sc_KE272_20261011, 'ECONOMY', 424400);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE272'), '2026-10-12 15:00:00', '2026-10-12 21:00:00');
+SET @sc_KE272_20261012 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE272_20261012, '1A', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20261012, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20261012, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20261012, '1D', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20261012, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261012, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20261012, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20261012, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20261012, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20261012, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20261012, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20261012, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261012, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE272_20261012, 'BUSINESS', 965600),
+  (@sc_KE272_20261012, 'ECONOMY', 372200);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE272'), '2026-10-13 15:00:00', '2026-10-13 21:00:00');
+SET @sc_KE272_20261013 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE272_20261013, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20261013, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20261013, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20261013, '1D', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20261013, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20261013, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20261013, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20261013, '3A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20261013, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20261013, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20261013, '4A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20261013, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20261013, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE272_20261013, 'BUSINESS', 945800),
+  (@sc_KE272_20261013, 'ECONOMY', 386000);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE272'), '2026-10-14 15:00:00', '2026-10-14 21:00:00');
+SET @sc_KE272_20261014 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE272_20261014, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20261014, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20261014, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20261014, '1D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20261014, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20261014, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261014, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261014, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261014, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261014, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261014, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261014, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261014, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE272_20261014, 'BUSINESS', 937800),
+  (@sc_KE272_20261014, 'ECONOMY', 452400);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE272'), '2026-10-15 15:00:00', '2026-10-15 21:00:00');
+SET @sc_KE272_20261015 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE272_20261015, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20261015, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20261015, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20261015, '1D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20261015, '2A', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20261015, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261015, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261015, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261015, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261015, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20261015, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261015, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261015, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE272_20261015, 'BUSINESS', 823700),
+  (@sc_KE272_20261015, 'ECONOMY', 377400);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE272'), '2026-10-16 15:00:00', '2026-10-16 21:00:00');
+SET @sc_KE272_20261016 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE272_20261016, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20261016, '1B', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20261016, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20261016, '1D', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20261016, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261016, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261016, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261016, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261016, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261016, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261016, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261016, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20261016, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE272_20261016, 'BUSINESS', 871800),
+  (@sc_KE272_20261016, 'ECONOMY', 458600);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE272'), '2026-10-17 15:00:00', '2026-10-17 21:00:00');
+SET @sc_KE272_20261017 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE272_20261017, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20261017, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20261017, '1C', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20261017, '1D', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20261017, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261017, '2B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20261017, '2C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261017, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261017, '3B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261017, '3C', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20261017, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261017, '4B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261017, '4C', 'ECONOMY', 'AVAILABLE');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE272_20261017, 'BUSINESS', 827000),
+  (@sc_KE272_20261017, 'ECONOMY', 439700);
+
+INSERT INTO flight_schedules (flight_id, depart_at, arrival_at) VALUES ((SELECT id FROM flights WHERE flight_no='KE272'), '2026-10-18 15:00:00', '2026-10-18 21:00:00');
+SET @sc_KE272_20261018 = LAST_INSERT_ID();
+INSERT INTO seats (schedule_id, seat_no, seat_class, status) VALUES
+  (@sc_KE272_20261018, '1A', 'BUSINESS', 'AVAILABLE'),
+  (@sc_KE272_20261018, '1B', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20261018, '1C', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20261018, '1D', 'BUSINESS', 'SOLD'),
+  (@sc_KE272_20261018, '2A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261018, '2B', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261018, '2C', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20261018, '3A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261018, '3B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20261018, '3C', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261018, '4A', 'ECONOMY', 'AVAILABLE'),
+  (@sc_KE272_20261018, '4B', 'ECONOMY', 'SOLD'),
+  (@sc_KE272_20261018, '4C', 'ECONOMY', 'SOLD');
+INSERT INTO fares (schedule_id, seat_class, amount) VALUES
+  (@sc_KE272_20261018, 'BUSINESS', 827900),
+  (@sc_KE272_20261018, 'ECONOMY', 425400);

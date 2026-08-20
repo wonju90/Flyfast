@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { api } from "../api/client";
 import { translateError } from "../api/errorMessages";
+import { useAirportNames } from "../hooks/useAirportNames";
+import { airportLabel } from "../utils/airport";
 import { getAirlineInfo } from "../utils/airline";
 import { formatClock, formatDuration } from "../utils/dateTime";
 
@@ -174,6 +176,7 @@ export default function ResultsPage() {
 
   const isRoundTrip = !!searchParams.get("return");
   const adults = Math.max(1, Number(searchParams.get("adults")) || 1);
+  const airportNames = useAirportNames();
 
   useEffect(() => {
     setLoading(true);
@@ -206,8 +209,9 @@ export default function ResultsPage() {
       <section className="route-hero">
         <div className="route-hero-title-row">
           <p className="route-hero-title">
-            {searchParams.get("origin")} <span aria-hidden="true">→</span>{" "}
-            {searchParams.get("destination")}
+            {airportLabel(searchParams.get("origin"), airportNames)}{" "}
+            <span aria-hidden="true">→</span>{" "}
+            {airportLabel(searchParams.get("destination"), airportNames)}
           </p>
           {result && result.history_id != null && (
             <button

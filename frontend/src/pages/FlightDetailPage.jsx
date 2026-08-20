@@ -3,6 +3,8 @@ import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom"
 import { api } from "../api/client";
 import { translateError } from "../api/errorMessages";
 import { useAuth } from "../context/AuthContext";
+import { useAirportNames } from "../hooks/useAirportNames";
+import { airportLabel } from "../utils/airport";
 import { formatTime } from "../utils/dateTime";
 import { formatWon, formatManwon } from "../utils/price";
 import { CABIN_LABELS, groupSeatsForMap } from "../utils/seatMap";
@@ -17,6 +19,7 @@ export default function FlightDetailPage() {
   const returnScheduleId = searchParams.get("returnScheduleId");
   const tripLeg = searchParams.get("tripLeg");
   const adults = Math.max(1, Number(searchParams.get("adults")) || 1);
+  const airportNames = useAirportNames();
 
   const [flight, setFlight] = useState(null);
   const [error, setError] = useState(null);
@@ -257,7 +260,8 @@ export default function FlightDetailPage() {
         )}
         <p className="route-hero-title">
           <span className="route-hero-flightno">{flight.flight_no}</span>
-          {flight.origin} <span aria-hidden="true">→</span> {flight.destination}
+          {airportLabel(flight.origin, airportNames)} <span aria-hidden="true">→</span>{" "}
+          {airportLabel(flight.destination, airportNames)}
         </p>
         <p className="route-hero-meta">
           {formatTime(flight.depart_at)} ~ {formatTime(flight.arrival_at)} · 잔여{" "}

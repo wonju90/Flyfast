@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api/client";
 import { translateError } from "../api/errorMessages";
+import { useAirportNames } from "../hooks/useAirportNames";
+import { airportLabel } from "../utils/airport";
 import { getAirlineInfo } from "../utils/airline";
 import { formatTime } from "../utils/dateTime";
 
@@ -33,6 +35,7 @@ export default function MyBookingsPage() {
   const [bookings, setBookings] = useState(null);
   const [error, setError] = useState(null);
   const [busyId, setBusyId] = useState(null);
+  const airportNames = useAirportNames();
 
   const load = useCallback(() => {
     api
@@ -102,7 +105,8 @@ export default function MyBookingsPage() {
                 </span>
               </div>
               <p className="booking-card-route">
-                {b.origin} <span aria-hidden="true">→</span> {b.destination}
+                {airportLabel(b.origin, airportNames)} <span aria-hidden="true">→</span>{" "}
+                {airportLabel(b.destination, airportNames)}
               </p>
               <p className="hint-text">
                 {formatTime(b.depart_at)} ~ {formatTime(b.arrival_at)}

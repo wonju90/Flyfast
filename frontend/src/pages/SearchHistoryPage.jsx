@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import { translateError } from "../api/errorMessages";
+import { useAirportNames } from "../hooks/useAirportNames";
+import { airportLabel } from "../utils/airport";
 
 function SearchHistorySkeleton() {
   return (
@@ -24,7 +26,7 @@ function buildSearchParams(entry) {
   return params.toString();
 }
 
-function SearchHistoryRow({ entry, onToggleFavorite, onDelete }) {
+function SearchHistoryRow({ entry, airportNames, onToggleFavorite, onDelete }) {
   const navigate = useNavigate();
 
   return (
@@ -39,7 +41,8 @@ function SearchHistoryRow({ entry, onToggleFavorite, onDelete }) {
     >
       <div className="search-history-route">
         <p className="search-history-route-text">
-          {entry.origin} <span aria-hidden="true">→</span> {entry.destination}
+          {airportLabel(entry.origin, airportNames)} <span aria-hidden="true">→</span>{" "}
+          {airportLabel(entry.destination, airportNames)}
         </p>
         <p className="hint-text">
           {entry.depart_date}
@@ -91,6 +94,7 @@ const MODE_CONTENT = {
 export default function SearchHistoryPage({ mode }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
+  const airportNames = useAirportNames();
 
   const load = useCallback(() => {
     api
@@ -156,6 +160,7 @@ export default function SearchHistoryPage({ mode }) {
             <SearchHistoryRow
               key={entry.id}
               entry={entry}
+              airportNames={airportNames}
               onToggleFavorite={handleToggleFavorite}
               onDelete={handleDelete}
             />
